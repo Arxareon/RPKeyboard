@@ -1,0 +1,15 @@
+## Interface: 90200 #Fallback to the Mainline version
+## Title: RP Keyboard
+## Version: 1.0
+## X-Day: 18
+## X-Month: 3
+## X-Year: 2022
+## Author: Barnabas Nagy (Arxareon)
+## X-License: All Rights Reserved
+## Notes: Type with fantasy letters & runes in chat and share them with addon users.
+## SavedVariables: RPKeyboardDB, RPKeyboardCS
+## SavedVariablesPerCharacter: RPKeyboardDBC
+
+WidgetTools/WidgetTools.lua
+RPKeyboardLocalizations.lua
+RPKeyboard.lua
