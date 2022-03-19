@@ -19,9 +19,9 @@
 [![Donate on PayPal](https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/PayPal.svg/124px-PayPal.svg.png)](https://www.paypal.com/donate/?hosted_button_id=Z4FSAFKA5LX98)
 
 ## Links
-[**CurseForge**](https://www.curseforge.com/wow/addons/party-targets) • Should you prefer, support development by watching ads on CurseForge, and keep up to date via automatic updates via the CurseForge App.
+[**CurseForge**](https://www.curseforge.com/wow/addons/rp-keyboard) • Should you prefer, support development by watching ads on CurseForge, and keep up to date via automatic updates via the CurseForge App.
 
-[**Wago**](https://addons.wago.io/addons/party-targets) • You can also use Wago to get updates and support development by watching ads, and provide much appreciated continuous support via a Subscription.
+[**Wago**](https://addons.wago.io/addons/rp-keyboard) • You can also use Wago to get updates and support development by watching ads, and provide much appreciated continuous support via a Subscription.
 
 *You can also get updates via **WoWUP** if you have Wago.io enabled as an addon provider!*
 
