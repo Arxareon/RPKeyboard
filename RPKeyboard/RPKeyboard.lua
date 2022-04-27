@@ -75,6 +75,41 @@ local dbcDefault = {
 	disabled = false,
 }
 
+--[ Symbol Sets ]
+
+local symbolSets = {
+	sample = {
+		name = "Sample",
+		version = 1.0,
+		textures = {
+			[0] = ""
+		},
+	},
+}
+
+--Global RP Keyboard table
+RPKB = {
+	---Add a set of symbols to the RP Keyboard table
+	---@param name string Displayed name of the symbol set
+	---@param version string The current version number of this set
+	---@param symbols table Table containing the paths of the texture files of symbols in alphabetical order [indexed, 0-based]
+	--- - ***Note:*** Texture files muct be in JPEG, TGA or BLP format, with powers of 2 dimensions.
+	---@param override boolean Whether to override the symbol set if one already exist with the given key [Default: false]
+	---@return string key The symbol set table will be listed under this key in the RP Keyboard table
+	AddSet = function(name, version, symbols, override)
+		local key = name:gsub("%s+", ""):lower()
+		--Check for an existing set
+		if symbols.key ~= nil and override ~= true then return key end
+		--TODO: Add validation
+		symbolSets.key = {
+			name = name,
+			version = version,
+			textures = symbols,
+		}
+		return key
+	end
+}
+
 
 --[[ FRAMES & EVENTS ]]
 
