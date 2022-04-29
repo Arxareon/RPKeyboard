@@ -2,7 +2,7 @@
 local addonNameSpace, ns = ...
 
 --Version
-ns.WidgetToolsVersion = "1.3"
+ns.WidgetToolsVersion = "1.4"
 
 --Global WidgetTools table containing toolbox subtables for each respective WidgetTools version (WidgetToolbox["version_string"])
 if not WidgetToolbox then WidgetToolbox = {} end
@@ -1081,6 +1081,7 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 	- **width**? number *optional* — [Default: *width of the parent frame* - 32]
 	--- 	- **height** number
 	--- - **title** string — Text to be shown as the main title of the panel
+	--- - **showTitle**? boolean *optional* — Whether or not to add the title above to the panel [Default: true]
 	--- - **description**? string *optional* — Text to be shown as the subtitle/description of the panel
 	---@return Frame panel
 	WidgetToolbox[ns.WidgetToolsVersion].CreatePanel = function(t)
@@ -1100,7 +1101,7 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 		panel:SetBackdropColor(0.15, 0.15, 0.15, 0.35)
 		panel:SetBackdropBorderColor(0.4, 0.4, 0.4, 0.8)
 		--Title & description
-		WidgetToolbox[ns.WidgetToolsVersion].AddTitle({
+		local title = WidgetToolbox[ns.WidgetToolsVersion].AddTitle({
 			frame = panel,
 			title = {
 				text = t.title,
@@ -1113,6 +1114,7 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 				offset = { x = 4, y = -16 }
 			},
 		})
+		if t.showTitle ~= true then title:Hide() end
 		return panel
 	end
 
@@ -1123,8 +1125,8 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	---@param t table Parameters are to be provided in this table
 	--- - **parent**? string *optional* — The display name of the options category to be set as the parent category, making this its subcategory [Default: *set as a main category*]
 	--- - **name**? string *optional* — String to be included in the unique frame name (it will not be visible) [Default: **t.title**]
-	--- - **title** string — Title text to be shown as the title of the options panel
-	--- - **description** string — Title text to be shown as the description below the title of the options panel
+	--- - **title** string — Text to be shown as the title of the options panel
+	--- - **description** string — Text to be shown as the description below the title of the options panel
 	--- - **logo**? string *optional* — Path to the texture file to be added as an icon to the top right corner of the panel
 	--- - **titleLogo**? boolean *optional* — Append the texture specified as **t.logo** to the title of the interface options button as well [Default: false]
 	--- - **scroll**? table *optional* — Create an empty ScrollFrame for the category panel
@@ -1282,7 +1284,7 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 			button, t.position.anchor, t.position.relativeTo, t.position.relativePoint, (t.position.offset or {}).x, (t.position.offset or {}).y
 		)
 		if t.width ~= nil then button:SetWidth(t.width) end
-		--Font
+		--Label
 		getglobal(button:GetName() .. "Text"):SetText(t.label)
 		--Event handlers
 		button:SetScript("OnClick", t.onClick)
@@ -1314,6 +1316,7 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 		- **y** number
 	--- - **autoOffset**? boolean *optional* — Offset the position of the checkbox in a Category Panel to place it into a 3 column grid based on its anchor point. [Default: false]
 	--- - **label** string — Text to be shown to the right of the checkbox and as the the tooltip label
+	--- - **showLabel**? boolean *optional* — Whether or not to show the label next to the checkbox [Default: true]
 	--- - **tooltip**? table [indexed, 0-based] *optional* — Text lines to be added to the tooltip of the checkbox
 	--- 	- **text** string ― Text to be added to the line
 	--- 	- **font**? string | FontObject *optional* ― The FontObject to set for this line [Default: GameTooltipTextSmall]
@@ -1363,9 +1366,15 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 		WidgetToolbox[ns.WidgetToolsVersion].PositionFrame(
 			checkbox, t.position.anchor, t.position.relativeTo, t.position.relativePoint, (t.position.offset or {}).x + columnOffset, (t.position.offset or {}).y
 		)
-		--Font
-		getglobal(checkbox:GetName() .. "Text"):SetFontObject("GameFontHighlight")
-		getglobal(checkbox:GetName() .. "Text"):SetText(t.label)
+		--Label
+		local label = nil
+		if t.showLabel ~= false then
+			label = getglobal(checkbox:GetName() .. "Text")
+			label:SetFontObject("GameFontHighlight")
+			label:SetText(t.label)
+		else
+			getglobal(checkbox:GetName() .. "Text"):Hide()
+		end
 		--Event handlers
 		if t.onClick ~= nil then checkbox:SetScript("OnClick", t.onClick) else checkbox:SetScript("OnClick", function() --[[ Do nothing. ]] end) end
 		checkbox:HookScript("OnClick", function() PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON) end)
@@ -1378,11 +1387,11 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 		--State & dependencies
 		if t.disabled then
 			checkbox:Disable()
-			getglobal(checkbox:GetName() .. "Text"):SetFontObject("GameFontDisable")
+			if label ~= nil then label:SetFontObject("GameFontDisable") end
 		end
 		if t.dependencies ~= nil then SetDependencies(t.dependencies, function(state)
 			checkbox:SetEnabled(state)
-			getglobal(checkbox:GetName() .. "Text"):SetFontObject(state and "GameFontHighlight" or "GameFontDisable")
+			if label ~= nil then label:SetFontObject(state and "GameFontHighlight" or "GameFontDisable") end
 		end) end
 		--Add to options data management
 		if t.optionsData ~= nil or t.onSave ~= nil or t.onLoad ~= nil then
@@ -1406,7 +1415,7 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 		- **y** number
 	--- - **width**? number *optional* — The combined width of the radio button's dot and the clickable extension to the right of it (where the label is) [Default: 140]
 	--- - **label** string — Text to be shown on the right of the radio button and as the the tooltip label
-	--- - **title**? boolean *optional* — Whether or not to show the label and add a clickable extension next to the the radio button bot [Default: true]
+	--- - **showLabel**? boolean *optional* — Whether or not to show the label and add the clickable extension next to the radio button [Default: true]
 	--- - **tooltip**? table [indexed, 0-based] *optional* — Text lines to be added to the tooltip of the radio button
 	--- 	- **text** string ― Text to be added to the line
 	--- 	- **font**? string | FontObject *optional* ― The FontObject to set for this line [Default: GameTooltipTextSmall]
@@ -1448,15 +1457,17 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	---@return CheckButton radioButton
 	WidgetToolbox[ns.WidgetToolsVersion].CreateRadioButton = function(t)
 		local radioButton = CreateFrame("CheckButton", t.parent:GetName() .. (t.name or t.label:gsub("%s+", "")) .. "RadioButton", t.parent, "UIRadioButtonTemplate")
-		--Position & dimensions
+		--Position
 		WidgetToolbox[ns.WidgetToolsVersion].PositionFrame(
 			radioButton, t.position.anchor, t.position.relativeTo, t.position.relativePoint, (t.position.offset or {}).x, (t.position.offset or {}).y
 		)
-		--Label & clickable extension
-		if t.title ~= false then
+		--Label
+		local label = nil
+		if t.showLabel ~= false then
 			--Font & text
-			getglobal(radioButton:GetName() .. "Text"):SetFontObject("GameFontHighlightSmall")
-			getglobal(radioButton:GetName() .. "Text"):SetText(t.label)
+			label = getglobal(radioButton:GetName() .. "Text")
+			label:SetFontObject("GameFontHighlightSmall")
+			label:SetText(t.label)
 			--Add extension
 			local extension = CreateFrame("Frame", radioButton:GetName() .. "Extension", radioButton)
 			--Position & dimensions
@@ -1471,6 +1482,8 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 				WidgetToolbox[ns.WidgetToolsVersion].AddTooltip(nil, radioButton, "ANCHOR_RIGHT", t.label, t.tooltip)
 			end)
 			extension:HookScript("OnLeave", function() customTooltip:Hide() end)
+		else
+			getglobal(radioButton:GetName() .. "Text"):Hide()
 		end
 		--Event handlers
 		if t.onClick ~= nil then radioButton:SetScript("OnClick", t.onClick) end
@@ -1484,11 +1497,11 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 		--State & dependencies
 		if t.disabled then
 			radioButton:Disable()
-			getglobal(radioButton:GetName() .. "Text"):SetFontObject("GameFontDisableSmall")
+			if label ~= nil then label:SetFontObject("GameFontDisableSmall") end
 		end
 		if t.dependencies ~= nil then SetDependencies(t.dependencies, function(state)
 			radioButton:SetEnabled(state)
-			getglobal(radioButton:GetName() .. "Text"):SetFontObject(state and "GameFontHighlightSmall" or "GameFontDisableSmall")
+			if label ~= nil then label:SetFontObject(state and "GameFontHighlightSmall" or "GameFontDisableSmall") end
 		end) end
 		--Add to options data management
 		if t.optionsData ~= nil or t.onSave ~= nil or t.onLoad ~= nil then
@@ -1509,7 +1522,8 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 		- **x** number
 	--- 		- **y** number
 	--- - **width**? number *optional* ― The height is defaulted to 36, the width may be specified [Default: 140]
-	--- - **title** string — Title text to be shown above the radio buttons
+	--- - **label** string — Title text to be shown above the radio buttons
+	--- - **title**? boolean *optional* — Whether or not to add the title above the radio buttons [Default: true]
 	--- - **items** table [indexed, 0-based] — Table containing subtables with data used to create radio button items, or already existing radio button widget frames
 	--- 	- **label** string — Text to represent the items within the selector frame
 	--- 	- **tooltip**? table [indexed, 0-based] *optional* — Text lines to be added to the tooltip of the radio button
@@ -1576,14 +1590,17 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 		local frameWidth = (t.size or {}).width or 140
 		selectorFrame:SetSize(frameWidth, 36)
 		--Title
-		local title = WidgetToolbox[ns.WidgetToolsVersion].AddTitle({
-			frame = selectorFrame,
-			title = {
-				text = t.label,
-				template = "GameFontNormal",
-				offset = { x = 4, y = 0 }
-			}
-		})
+		local title = nil
+		if t.title ~= false then
+			title = WidgetToolbox[ns.WidgetToolsVersion].AddTitle({
+				frame = selectorFrame,
+				title = {
+					text = t.label,
+					template = "GameFontNormal",
+					offset = { x = 4, y = 0 }
+				}
+			})
+		end
 		--Add radio buttons
 		local items = {}
 		for i = 0, #t.items do
@@ -1721,7 +1738,7 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 		if t.disabled and t.title ~= nil then t.title:SetFontObject("GameFontDisable") end
 		if t.dependencies ~= nil then SetDependencies(t.dependencies, function(state)
 			editBox:SetEnabled(state)
-			t.title:SetFontObject(state and "GameFontNormal" or "GameFontDisable")
+			if t.title ~= nil then t.title:SetFontObject(state and "GameFontNormal" or "GameFontDisable") end
 		end) end
 		--Add to options data management
 		if t.optionsData ~= nil or t.onSave ~= nil or t.onLoad ~= nil then
@@ -1753,7 +1770,7 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 	- **a** number ― Opacity [Range: 0 - 1]
 	--- - **text**? string *optional* — Text to be shown inside editbox, loaded whenever the text box is shown
 	--- - **label** string — Name of the editbox to be shown as the tooltip title and optionally as the title text
-	--- - **title**? boolean *optional* — Whether or not to add a title above the editbox [Default: true]
+	--- - **title**? boolean *optional* — Whether or not to add the title above the editbox [Default: true]
 	--- - **tooltip**? table [indexed, 0-based] *optional* — Text lines to be added to the tooltip of the editbox
 	--- 	- **text** string ― Text to be added to the line
 	--- 	- **font**? string | FontObject *optional* ― The FontObject to set for this line [Default: GameTooltipTextSmall]
@@ -1872,7 +1889,7 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 	- **a** number ― Opacity [Range: 0 - 1]
 	--- - **text**? string *optional* — Text to be shown inside editbox, loaded whenever the text box is shown
 	--- - **label** string — Name of the editbox to be shown as the tooltip title and optionally as the title text
-	--- - **title**? boolean *optional* — Whether or not to add a title above the editbox [Default: true]
+	--- - **title**? boolean *optional* — Whether or not to add the title above the editbox [Default: true]
 	--- - **tooltip**? table [indexed, 0-based] *optional* — Text lines to be added to the tooltip of the editbox
 	--- 	- **text** string ― Text to be added to the line
 	--- 	- **font**? string | FontObject *optional* ― The FontObject to set for this line [Default: GameTooltipTextSmall]
@@ -1997,7 +2014,7 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	---Create a clickable textline and an editbox from which the contents of the text can be copied
 	---@param t table Parameters are to be provided in this table
 	--- - **parent** Frame — The frame to set as the parent of the copybox
-	--- - **name** string — String to be included in the unique frame name (it will not be visible)
+	--- - **name**? string *optional* — String to be included in the unique frame name (it will not be visible) [Default: **t.label**]
 	--- - **position** table — Collection of parameters to call [Region:SetPoint()](https://wowwiki-archive.fandom.com/wiki/API_Region_SetPoint#Arguments) with
 	--- 	- **anchor** [AnchorPoint](https://wowwiki-archive.fandom.com/wiki/Widget_Anchor_Points#All_sides)
 	--- 	- **relativeTo**? [Frame](https://wowpedia.fandom.com/wiki/API_CreateFrame#Frame_types) *optional*
@@ -2017,7 +2034,8 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 	- **b** number ― Blue [Range: 0 - 1]
 	--- 	- **a** number ― Opacity [Range: 0 - 1]
 	--- - **text** string ― The copyable text to be shown
-	--- - **label**? string *optional* — Title text to be shown above the copybox [Default: *no title*]
+	--- - **label** string — Title text to be shown above the copybox
+	--- - **title**? boolean *optional* — Whether or not to add the title above the copybox [Default: true]
 	--- - **flipOnMouse**? boolean *optional* — Hide/Reveal the editbox on mouseover instead of after a click [Default: false]
 	--- - **colorOnMouse**? table *optional* — If set, change the color of the text on mouseover to the specified color (if **t.flipOnMouse** is false) [Default: *no color change*]
 	--- 	- **r** number ― Red [Range: 0 - 1]
@@ -2027,15 +2045,15 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	---@return FontString textLine
 	---@return EditBox copyBox
 	WidgetToolbox[ns.WidgetToolsVersion].CreateCopyBox = function(t)
-		local copyBox = CreateFrame("Button", t.parent:GetName() .. t.name .. "CopyBox", t.parent)
+		local copyBox = CreateFrame("Button", t.parent:GetName() .. (t.name or t.label:gsub("%s+", "")) .. "CopyBox", t.parent)
 		--Position & dimensions
-		local titleOffset = t.label ~= nil and -12 or 0
+		local titleOffset = t.title ~= false and -12 or 0
 		WidgetToolbox[ns.WidgetToolsVersion].PositionFrame(
 			copyBox, t.position.anchor, t.position.relativeTo, t.position.relativePoint, (t.position.offset or {}).x, (t.position.offset or {}).y + titleOffset
 		)
 		copyBox:SetSize(t.width or 180, 17)
 		--Title
-		if t.label ~= nil then
+		if t.title ~= false then
 			WidgetToolbox[ns.WidgetToolsVersion].AddTitle({
 				frame = copyBox,
 				title = {
@@ -2192,6 +2210,7 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 		- **y** number
 	--- - **width**? number *optional*
 	--- - **label** string — Title text to be shown above the slider and as the the tooltip label
+	--- - **title**? boolean *optional* — Whether or not to show the title above the slider [Default: true]
 	--- - **tooltip**? table [indexed, 0-based] *optional* — Text lines to be added to the tooltip of the slider
 	--- 	- **text** string ― Text to be added to the line
 	--- 	- **font**? string | FontObject *optional* ― The FontObject to set for this line [Default: GameTooltipTextSmall]
@@ -2248,12 +2267,18 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 			slider, t.position.anchor, t.position.relativeTo, t.position.relativePoint, (t.position.offset or {}).x, ((t.position.offset or {}).y or 0) - 12
 		)
 		if t.width ~= nil then slider:SetWidth(t.width) end
-		--Font
-		getglobal(slider:GetName() .. "Text"):SetFontObject("GameFontNormal")
-		getglobal(slider:GetName() .. "Text"):SetText(t.label)
+		--Title
+		local title = nil
+		if t.title ~= false then
+			title = getglobal(slider:GetName() .. "Text")
+			title:SetFontObject("GameFontNormal")
+			title:SetText(t.label)
+		else
+			getglobal(slider:GetName() .. "Text"):Hide()
+		end
+		--Value
 		getglobal(slider:GetName() .. "Low"):SetText(tostring(t.value.min))
 		getglobal(slider:GetName() .. "High"):SetText(tostring(t.value.max))
-		--Value
 		slider:SetMinMaxValues(t.value.min, t.value.max)
 		if t.value.step ~= nil then
 			slider:SetValueStep(t.value.step)
@@ -2284,13 +2309,13 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 		if t.disabled then
 			slider:Disable()
 			valueBox:Disable()
-			getglobal(slider:GetName() .. "Text"):SetFontObject("GameFontDisable")
+			if title ~= nil then title:SetFontObject("GameFontDisable") end
 			valueBox:SetFontObject("GameFontDisableSmall")
 		end
 		if t.dependencies ~= nil then SetDependencies(t.dependencies, function(state)
 			slider:SetEnabled(state)
 			valueBox:SetEnabled(state)
-			getglobal(slider:GetName() .. "Text"):SetFontObject(state and "GameFontNormal" or "GameFontDisable")
+			if title ~= nil then title:SetFontObject(state and "GameFontNormal" or "GameFontDisable") end
 			valueBox:SetFontObject(state and "GameFontHighlightSmall" or "GameFontDisableSmall")
 		end) end
 		--Add to options data management
@@ -2315,7 +2340,7 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 		- **y** number
 	--- - **width**? number *optional* — [Default: 115]
 	--- - **label** string — Name of the dropdown shown as the tooltip title and optionally as the title text
-	--- - **title**? boolean *optional* — Whether or not to add a title above the dropdown menu [Default: true]
+	--- - **title**? boolean *optional* — Whether or not to add the title above the dropdown menu [Default: true]
 	--- - **tooltip**? table [indexed, 0-based] *optional* — Text lines to be added to the tooltip of the dropdown
 	--- 	- **text** string ― Text to be added to the line
 	--- 	- **font**? string | FontObject *optional* ― The FontObject to set for this line [Default: GameTooltipTextSmall]
@@ -2611,6 +2636,7 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 		- **y** number
 	--- - **width**? number *optional* ― The height is defaulted to 36, the width may be specified [Default: 120]
 	--- - **label** string — Title text to be shown above the color picker button and HEX input box
+	--- - **title**? boolean *optional* — Whether or not to add the title above the color picker [Default: true]
 	--- - **setColors** function — The function to be called to set the colors of the color picker on load or update
 	--- 	- @*return* **r** number ― Red [Range: 0 - 1]
 	--- 	- @*return* **g** number ― Green [Range: 0 - 1]
@@ -2684,14 +2710,17 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 		local frameWidth = (t.size or {}).width or 120
 		pickerFrame:SetSize(frameWidth, 36)
 		--Title
-		local title = WidgetToolbox[ns.WidgetToolsVersion].AddTitle({
-			frame = pickerFrame,
-			title = {
-				text = t.label,
-				template = "GameFontNormal",
-				offset = { x = 4, y = 0 }
-			}
-		})
+		local title = nil
+		if t.title ~= false then
+			title = WidgetToolbox[ns.WidgetToolsVersion].AddTitle({
+				frame = pickerFrame,
+				title = {
+					text = t.label,
+					template = "GameFontNormal",
+					offset = { x = 4, y = 0 }
+				}
+			})
+		end
 		--Add color picker button to open the Blizzard Color Picker
 		local pickerButton, backgroundGradient = AddColorPickerButton(pickerFrame, {
 			setColors = t.setColors,
@@ -2724,13 +2753,13 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 		})
 		--State & dependencies
 		if t.disabled then
-			title:SetFontObject("GameFontDisable")
+			if title ~= nil then title:SetFontObject("GameFontDisable") end
 			pickerButton:Disable()
 			hexBox:Disable()
 			hexBox:SetFontObject("GameFontDisableSmall")
 		end
 		if t.dependencies ~= nil then SetDependencies(t.dependencies, function(state)
-			title:SetFontObject(state and "GameFontNormal" or "GameFontDisable")
+			if title ~= nil then title:SetFontObject(state and "GameFontNormal" or "GameFontDisable") end
 			pickerButton:SetEnabled(state)
 			hexBox:SetEnabled(state)
 			hexBox:SetFontObject(state and "GameFontHighlightSmall" or "GameFontDisableSmall")

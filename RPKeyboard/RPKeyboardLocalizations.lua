@@ -129,6 +129,9 @@ local english = {
 			hint = "Type #HELP_COMMAND to see the full command list.", --# flags will be replaced with code
 			list = "chat command list",
 		},
+		keybind = {
+			toggle = "Keybind #KEYBIND was set to #ACTION.", --# flags will be replaced with code
+		},
 		options = {
 			command = "options",
 			description = "open the #ADDON options", --# flags will be replaced with code
@@ -141,8 +144,12 @@ local english = {
 		},
 	},
 	keys = {
+		ctrl = "CTRL",
 		shift = "SHIFT",
 		enter = "ENTER",
+	},
+	keybinds = {
+		toggle = "Toggle the Chat Window",
 	},
 	points = {
 		left = "Left",

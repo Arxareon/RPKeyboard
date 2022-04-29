@@ -1,0 +1,5 @@
+<Bindings>
+	<Binding name="RPKB_TOGGLE" header="RPKB" category="ADDONS" default="CTRL-ENTER">
+		RPKBTools.Toggle()
+	</Binding>
+</Bindings>

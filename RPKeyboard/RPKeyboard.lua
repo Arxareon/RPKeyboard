@@ -110,17 +110,9 @@ end)
 
 --[[ UTILITIES ]]
 
----Add coloring escape sequences to a string
----@param text string Text to add coloring to
----@param color table Table containing the color values
---- - **r** number ― Red [Range: 0 - 1]
---- - **g** number ― Green [Range: 0 - 1]
---- - **b** number ― Blue [Range: 0 - 1]
---- - **a**? number *optional* ― Opacity [Range: 0 - 1, Default: 1]
----@return string
-local function Color(text, color)
-	local r, g, b, a = wt.UnpackColor(color)
-	return WrapTextInColorCode(text, wt.ColorToHex(r, g, b, a, true, false))
+--Toggle the RP Keyboard chat window
+RPKBTools.Toggle = function()
+	wt.SetVisibility(rpkb, not rpkb:IsShown())
 end
 
 ---Find the ID of the font provided
@@ -282,7 +274,7 @@ local function CreateOptionsShortcuts(parentFrame)
 		},
 		width = 120,
 		label = strings.options.advanced.title,
-		tooltip = strings.options.advanced.description:gsub("#ADDON", addon),
+		tooltip = { [0] = { text = strings.options.advanced.description:gsub("#ADDON", addon) }, },
 		onClick = function() InterfaceOptionsFrame_OpenToCategory(options.advancedOptionsPage) end,
 	})
 end
@@ -366,7 +358,7 @@ local function CreateAboutInfo(parentFrame)
 		fontObject = "GameFontDisableSmall",
 		text = ns.GetChangelog(),
 		label = strings.options.main.about.changelog.label,
-		tooltip = strings.options.main.about.changelog.tooltip,
+		tooltip = { [0] = { text = strings.options.main.about.changelog.tooltip }, },
 		scrollSpeed = 45,
 		readOnly = true,
 	})
@@ -501,7 +493,7 @@ local function CreateBackupOptions(parentFrame)
 				wt.CopyValues(t.character, dbc)
 				--Update the interface options
 				wt.LoadOptionsData()
-			else print(Color(addon .. ":", colors.red[0]) .. " " .. Color(strings.options.advanced.backup.error, colors.blue[0])) end
+			else print(wt.Color(addon .. ":", colors.red[0]) .. " " .. wt.Color(strings.options.advanced.backup.error, colors.blue[0])) end
 		end
 	})
 	local backupBox
@@ -516,12 +508,12 @@ local function CreateBackupOptions(parentFrame)
 		maxLetters = 5400,
 		fontObject = "GameFontWhiteSmall",
 		label = strings.options.advanced.backup.backupBox.label,
-		tooltip = strings.options.advanced.backup.backupBox.tooltip[0],
-		tooltipExtra = {
-			[0] = { text = strings.options.advanced.backup.backupBox.tooltip[1] },
-			[1] = { text = "\n" .. strings.options.advanced.backup.backupBox.tooltip[2]:gsub("#ENTER", strings.keys.enter) },
-			[2] = { text = strings.options.advanced.backup.backupBox.tooltip[3], color = { r = 0.89, g = 0.65, b = 0.40 } },
-			[3] = { text = "\n" .. strings.options.advanced.backup.backupBox.tooltip[4], color = { r = 0.92, g = 0.34, b = 0.23 } },
+		tooltip = {
+			[0] = { text = strings.options.advanced.backup.backupBox.tooltip[0] },
+			[1] = { text = strings.options.advanced.backup.backupBox.tooltip[1] },
+			[2] = { text = "\n" .. strings.options.advanced.backup.backupBox.tooltip[2]:gsub("#ENTER", strings.keys.enter) },
+			[3] = { text = strings.options.advanced.backup.backupBox.tooltip[3], color = { r = 0.89, g = 0.65, b = 0.40 } },
+			[4] = { text = "\n" .. strings.options.advanced.backup.backupBox.tooltip[4], color = { r = 0.92, g = 0.34, b = 0.23 } },
 		},
 		scrollSpeed = 60,
 		onEnterPressed = function() StaticPopup_Show(importPopup) end,
@@ -538,7 +530,7 @@ local function CreateBackupOptions(parentFrame)
 			offset = { x = -8, y = -13 }
 		},
 		label = strings.options.advanced.backup.compact.label,
-		tooltip = strings.options.advanced.backup.compact.tooltip,
+		tooltip = { [0] = { text = strings.options.advanced.backup.compact.tooltip }, },
 		onClick = function(self)
 			options.backup.string:SetText(wt.TableToString({ account = db, character = dbc }, self:GetChecked(), true))
 			--Set focus after text change to set the scroll to the top and refresh the position character counter
@@ -561,7 +553,7 @@ local function CreateBackupOptions(parentFrame)
 		},
 		width = 80,
 		label = strings.options.advanced.backup.load.label,
-		tooltip = strings.options.advanced.backup.load.tooltip,
+		tooltip = { [0] = { text = strings.options.advanced.backup.load.tooltip }, },
 		onClick = function() StaticPopup_Show(importPopup) end,
 	})
 	--Button: Reset
@@ -575,7 +567,7 @@ local function CreateBackupOptions(parentFrame)
 		},
 		width = 80,
 		label = strings.options.advanced.backup.reset.label,
-		tooltip = strings.options.advanced.backup.reset.tooltip,
+		tooltip = { [0] = { text = strings.options.advanced.backup.reset.tooltip }, },
 		onClick = function()
 			options.backup.string:SetText("") --Remove text to make sure OnTextChanged will get called
 			options.backup.string:SetText(wt.TableToString({ account = db, character = dbc }, options.backup.compact:GetChecked(), true))
@@ -636,7 +628,7 @@ local function DefaultOptions()
 	--Update the interface options
 	wt.LoadOptionsData()
 	--Notification
-	print(Color(addon .. ":", colors.red[0]) .. " " .. Color(strings.options.defaults, colors.blue[0]))
+	print(wt.Color(addon .. ":", colors.red[0]) .. " " .. wt.Color(strings.options.defaults, colors.blue[0]))
 end
 
 --Create and add the options category panel frames to the WoW Interface Options
@@ -676,21 +668,21 @@ end
 ---@param load boolean [Default: false]
 local function PrintStatus(load)
 	if load == true and not db.statusNotice then return end
-	print(Color(rpkb:IsVisible() and strings.chat.status.enabled:gsub(
-		"#ADDON", Color(addon, colors.red[0])
+	print(wt.Color(rpkb:IsVisible() and strings.chat.status.enabled:gsub(
+		"#ADDON", wt.Color(addon, colors.red[0])
 	) or strings.chat.status.disabled:gsub(
-		"#ADDON", Color(addon, colors.red[0])
+		"#ADDON", wt.Color(addon, colors.red[0])
 	), colors.blue[0]))
 end
 --Print help info
 local function PrintInfo()
-	print(Color(strings.chat.help.thanks:gsub("#ADDON", Color(addon, colors.red[0])), colors.blue[0]))
+	print(wt.Color(strings.chat.help.thanks:gsub("#ADDON", wt.Color(addon, colors.red[0])), colors.blue[0]))
 	PrintStatus()
-	print(Color(strings.chat.help.hint:gsub( "#HELP_COMMAND", Color(strings.chat.keyword .. " " .. strings.chat.help.command, colors.red[1])), colors.blue[1]))
+	print(wt.Color(strings.chat.help.hint:gsub( "#HELP_COMMAND", wt.Color(strings.chat.keyword .. " " .. strings.chat.help.command, colors.red[1])), colors.blue[1]))
 end
 --Print the command list with basic functionality info
 local function PrintCommands()
-	print(Color(addon, colors.red[0]) .. " ".. Color(strings.chat.help.list .. ":", colors.blue[0]))
+	print(wt.Color(addon, colors.red[0]) .. " ".. wt.Color(strings.chat.help.list .. ":", colors.blue[0]))
 	--Index the commands (skipping the help command) and put replacement code segments in place
 	local commands = {
 		[0] = {
@@ -700,13 +692,13 @@ local function PrintCommands()
 		[1] = {
 			command = strings.chat.toggle.command,
 			description = strings.chat.toggle.description:gsub("#ADDON", addon):gsub(
-				"#STATE", Color(dbc.disabled and strings.misc.disabled or strings.misc.enabled, colors.red[1])
+				"#STATE", wt.Color(dbc.disabled and strings.misc.disabled or strings.misc.enabled, colors.red[1])
 			)
 		},
 	}
 	--Print the list
 	for i = 0, #commands do
-		print("    " .. Color(strings.chat.keyword .. " " .. commands[i].command, colors.red[1]) .. Color(" - " .. commands[i].description, colors.blue[1]))
+		print("    " .. wt.Color(strings.chat.keyword .. " " .. commands[i].command, colors.red[1]) .. wt.Color(" - " .. commands[i].description, colors.blue[1]))
 	end
 end
 
@@ -716,10 +708,10 @@ local function ToggleCommand()
 	dbc.disabled = not dbc.disabled
 	wt.SetVisibility(rpkb, not dbc.disabled)
 	--Response
-	print(Color(dbc.disabled and strings.chat.toggle.disabled:gsub(
-			"#ADDON", Color(addon, colors.red[0])
+	print(wt.Color(dbc.disabled and strings.chat.toggle.disabled:gsub(
+			"#ADDON", wt.Color(addon, colors.red[0])
 		) or strings.chat.toggle.enabled:gsub(
-			"#ADDON", Color(addon, colors.red[0])
+			"#ADDON", wt.Color(addon, colors.red[0])
 		), colors.blue[0]))
 	--Update in the SavedVariabes DB
 	RPKeyboardDBC.disabled = dbc.disabled
@@ -748,20 +740,20 @@ end
 --Set frame parameters
 local function SetUpMainFrame()
 	--Main frame
-	rpkb:SetSize(ChatFrame1EditBox:GetWidth(), 100)
+	rpkb:SetSize(ChatFrame1EditBox:GetWidth(), 80)
 	rpkb:SetPoint("TOPLEFT", ChatFrame1EditBox, "BOTTOMLEFT")
 	rpkb:SetFrameStrata("HIGH")
 	wt.SetVisibility(rpkb, not dbc.disabled)
-	wt.CreatePanel({
+	--Add panel
+	local panel = wt.CreatePanel({
 		parent = rpkb,
-		position = {
-			anchor = "TOPLEFT",
-			offset = { x = 16, y = -82 }
-		},
-		size = { height = 64 },
-		title = strings.options.advanced.profiles.title,
-		description = strings.options.advanced.profiles.description:gsub("#ADDON", addon),
+		position = { anchor = "TOPLEFT", },
+		size = { width = rpkb:GetWidth(), height = rpkb:GetHeight() },
+		title = "Frame",
+		showTitle = false,
 	})
+	panel:EnableMouse(true)
+	rpkb:Hide()
 end
 
 --[ Loading ]
@@ -770,17 +762,34 @@ function rpkb:ADDON_LOADED(name)
 	if name ~= addonNameSpace then return end
 	rpkb:UnregisterEvent("ADDON_LOADED")
 	--Load & check the DBs
-	if LoadDBs() then PrintInfo() end
+	if LoadDBs() then
+		PrintInfo()
+		cs.first = true
+	end
 	--Create cross-session character-specific variables
 	if cs.compactBackup == nil then cs.compactBackup = true end
+	--Set key binding labels
+	BINDING_HEADER_RPKB = addon
+	BINDING_NAME_RPKB_TOGGLE = strings.keybinds.toggle
 	--Set up the interface options
 	LoadInterfaceOptions()
-end
-function rpkb:PLAYER_ENTERING_WORLD()
 	--Set up the main frame & text
 	SetUpMainFrame()
+end
+function rpkb:PLAYER_ENTERING_WORLD()
 	--Visibility notice
 	if not rpkb:IsVisible() then PrintStatus(true) end
+	--Set default key bindings
+	if cs.first then
+		cs.first = nil
+		SetBinding("CTRL-ENTER", "RPKB_TOGGLE")
+		--Chat notification
+		print(wt.Color(addon .. ":", colors.red[0]) .. " " .. wt.Color(strings.chat.keybind.toggle:gsub(
+			"#KEYBIND", wt.Color(strings.keys.ctrl .. "-" .. strings.keys.enter:lower():gsub("^%l", string.upper), colors.blue[1])
+		):gsub(
+			"#ACTION", wt.Color(strings.keybinds.toggle, colors.blue[1])
+		), colors.blue[0]))
+	end
 end
 
 
