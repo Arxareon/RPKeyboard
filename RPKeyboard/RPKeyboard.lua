@@ -77,7 +77,7 @@ local dbcDefault = {
 
 --[ Symbol Sets ]
 
-local symbolSets = {
+local symbols = {
 	sample = {
 		name = "Sample",
 		version = 1.0,
@@ -88,27 +88,7 @@ local symbolSets = {
 }
 
 --Global RP Keyboard table
-RPKB = {
-	---Add a set of symbols to the RP Keyboard table
-	---@param name string Displayed name of the symbol set
-	---@param version string The current version number of this set
-	---@param symbols table Table containing the paths of the texture files of symbols in alphabetical order [indexed, 0-based]
-	--- - ***Note:*** Texture files muct be in JPEG, TGA or BLP format, with powers of 2 dimensions.
-	---@param override boolean Whether to override the symbol set if one already exist with the given key [Default: false]
-	---@return string key The symbol set table will be listed under this key in the RP Keyboard table
-	AddSet = function(name, version, symbols, override)
-		local key = name:gsub("%s+", ""):lower()
-		--Check for an existing set
-		if symbols.key ~= nil and override ~= true then return key end
-		--TODO: Add validation
-		symbolSets.key = {
-			name = name,
-			version = version,
-			textures = symbols,
-		}
-		return key
-	end
-}
+RPKBTools = {}
 
 
 --[[ FRAMES & EVENTS ]]
@@ -226,6 +206,43 @@ local function LoadDBs()
 	RPKeyboardDB = wt.Clone(db)
 	RPKeyboardDBC = wt.Clone(dbc)
 	return firstLoad
+end
+
+--[ Symbol Set Management ]
+
+---comment
+local function UpdateSets()
+	
+end
+
+---Add or update a set of symbols to the RP Keyboard table
+---@param name string Displayed name of the symbol set
+---@param version string The current version number of this set
+---@param symbolSet table Table containing file paths of the symbol textures in alphabetical order [indexed, 0-based, #33]
+--- - ***Note:*** Texture files must be in JPEG (no transparency), TGA or BLP format with powers of 2 dimensions (recommanded: 32 x 32).
+---@param englishOnly boolean Whether or not the symbol set covers only the English alphabet [Default: true]
+---@param override boolean Whether to override the symbol set if one already exist with the given key [Default: false]
+---@return string? key The symbol set table will be listed under this key in the RP Keyboard table [Default: nil *(on error)*]
+RPKBTools.AddSet = function(name, version, symbolSet, englishOnly, override)
+	local key = name:gsub("%s+", ""):lower()
+	--Check for an existing set
+	if symbolSet.key ~= nil and override ~= true then return nil end
+	--Validate the symbol set
+	local validatedSet = {}
+	for i = 0, 33 do
+		if not symbolSet[i] then return nil end
+		if type(symbolSet[i]) ~= "string" then return nil end
+		validatedSet[i] = symbolSet[i]
+	end
+	--Add the set
+	symbols.key = {
+		name = name,
+		version = version,
+		textures = validatedSet,
+	}
+	--Update the UI
+	UpdateSets()
+	return key
 end
 
 
@@ -731,10 +748,20 @@ end
 --Set frame parameters
 local function SetUpMainFrame()
 	--Main frame
-	rpkb:SetSize(100, 100)
-	rpkb:SetPoint("TOPLEFT")
-	rpkb:SetFrameStrata("BACKGROUND")
+	rpkb:SetSize(ChatFrame1EditBox:GetWidth(), 100)
+	rpkb:SetPoint("TOPLEFT", ChatFrame1EditBox, "BOTTOMLEFT")
+	rpkb:SetFrameStrata("HIGH")
 	wt.SetVisibility(rpkb, not dbc.disabled)
+	wt.CreatePanel({
+		parent = rpkb,
+		position = {
+			anchor = "TOPLEFT",
+			offset = { x = 16, y = -82 }
+		},
+		size = { height = 64 },
+		title = strings.options.advanced.profiles.title,
+		description = strings.options.advanced.profiles.description:gsub("#ADDON", addon),
+	})
 end
 
 --[ Loading ]
