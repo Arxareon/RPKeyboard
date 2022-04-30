@@ -110,9 +110,69 @@ end)
 
 --[[ UTILITIES ]]
 
+local currentChatType = "SAY"
+
+---Generate a string snippet signaling the current chat type that goes at the start in a chat input field
+---@param chatType string [ChatTypeId](https://wowwiki-archive.fandom.com/wiki/ChatTypeId)
+---@return string
+local function GetChatSendSnippet(chatType)
+	if chatType == "SAY" then return CHAT_SAY_SEND end
+	if chatType == "YELL" then return CHAT_YELL_SEND end
+	if chatType == "WHISPER" then return CHAT_WHISPER_SEND:gsub("%%s", "Player-Realm") end --TODO: Figure out how/whether to handle whispers
+	if chatType == "EMOTE" then return UnitName("player") .. " " end
+	return ""
+end
+
+---Generate a string snippet signaling the current chat type that goes at the start of a sent/received chat message
+---@param chatType string [ChatTypeId](https://wowwiki-archive.fandom.com/wiki/ChatTypeId)
+---@return string
+local function GetChatGetSnippet(chatType)
+	if chatType == "SAY" then return CHAT_SAY_GET:sub(3) end
+	if chatType == "YELL" then return CHAT_YELL_GET:sub(3) end
+	if chatType == "WHISPER" then return CHAT_WHISPER_GET:sub(3) end
+	if chatType == "EMOTE" then return " " end
+	return ": "
+end
+
+---Check if the input text is recognizable as a chat command to change the current chat type
+---@param command string Text to analyze in serach of a chat type change command
+---@param appendSpace? boolean Whether or not to only check for commands with space appended [Default: false]
+---@param removeSendSnippet? boolean Whether or not to remove the send snippet from the beginning [Default: true]
+---@return boolean changed Whether the current chat type was changed or not
+local function ChangeChatTypeCommand(command, appendSpace, removeSendSnippet)
+	local oldChatType = currentChatType
+	local c = command
+	if removeSendSnippet ~= false then c = c:gsub(GetChatSendSnippet(currentChatType) .. "(.*)", "%1") end
+	c = c:lower()
+	local s = appendSpace == true and " " or ""
+	print(s, c, c == "/y" .. s or c == "/yell" .. s) --FIXME: Check why won't the string comparison work
+	if c == "/s" .. s or c == "/say" .. s then
+		currentChatType = "SAY"
+	elseif c == "/y" .. s or c == "/yell" .. s then
+		currentChatType = "YELL"
+	elseif c == "/e" .. s or c == "/emote" .. s then
+		currentChatType = "EMOTE"
+	end
+	return oldChatType ~= currentChatType
+end
+
 --Toggle the RP Keyboard chat window
 RPKBTools.Toggle = function()
 	wt.SetVisibility(rpkb, not rpkb:IsShown())
+end
+
+---Assemble a printable chat message text coming from the palyer that looks like a real chat message
+---@param message string Text **your character** should communicate
+--- - ***Note:*** When **chatType** is set to "EMOTE", **message** will be used as the custom emote text.
+---@param chatType string [ChatTypeId](https://wowwiki-archive.fandom.com/wiki/ChatTypeId), the chat channel or type the message should be
+---@return string
+RPKBTools.AssembleMessage = function(message, chatType)
+	local player = UnitName("player")
+	return wt.Color(
+		"|Hplayer:" .. player .. ":WHISPER:" .. GetRealmName():upper() .. "|h" .. (chatType == "EMOTE" and "" or "[") .. wt.Color(
+			player, C_ClassColor.GetClassColor(select(2, UnitClass("player")))
+		) .. (chatType == "EMOTE" and "" or "]") .. "|h" .. GetChatGetSnippet(chatType) .. message, ChatTypeInfo[chatType]
+	)
 end
 
 ---Find the ID of the font provided
@@ -738,7 +798,7 @@ end
 --[ Main Frame Setup ]
 
 --Set frame parameters
-local function SetUpMainFrame()
+local function SetUpChatFrame()
 	--Main frame
 	rpkb:SetSize(ChatFrame1EditBox:GetWidth(), 80)
 	rpkb:SetPoint("TOPLEFT", ChatFrame1EditBox, "BOTTOMLEFT")
@@ -753,6 +813,90 @@ local function SetUpMainFrame()
 		showTitle = false,
 	})
 	panel:EnableMouse(true)
+	--Add input box
+	local chatbox = wt.CreateEditBox({
+		parent = panel,
+		position = {
+			anchor = "TOP",
+			offset = { x = 3, y = -6 },
+		},
+		width = panel:GetWidth() - 16,
+		label = "hey",
+		title = false,
+		tooltip = { [0] = { text = "ho" }, },
+		onEnterPressed = function(self)
+			--Send the message
+			local text = self:GetText()
+			--Check for chat type change command
+			if ChangeChatTypeCommand(text:gsub(GetChatSendSnippet(currentChatType) .. "(.*)", "%1")) then
+				self:SetText(wt.Color(GetChatSendSnippet(currentChatType), ChatTypeInfo[currentChatType]))
+				return
+			end
+			--Send the message
+			if text ~= "" then
+				local message = text:gsub(GetChatSendSnippet(currentChatType) .. "(.*)", "%1")
+				--TODO: Add message tramission
+				print(RPKBTools.AssembleMessage(message, currentChatType))
+			end
+			--Clear the input
+			self:SetText("")
+			self:ClearFocus()
+		end,
+		onEscapePressed = function(self)
+			--Clear the input
+			self:SetText("")
+			self:ClearFocus()
+		end,
+		onEvent = {
+			[0] = {
+				event = "OnTextChanged",
+				handler = function(self, user)
+					if not user then return end
+					local text = self:GetText()
+					--Check for chat type change command
+					if ChangeChatTypeCommand(text:gsub(GetChatSendSnippet(currentChatType) .. "(.*)", "%1"), true, true) then
+						self:SetText(wt.Color(GetChatSendSnippet(currentChatType), ChatTypeInfo[currentChatType]))
+						return
+					end
+					--Character check
+					local cursor = self:GetCursorPosition()
+					local char = text:sub(cursor, cursor)
+					--TODO: Add character check
+					if true then
+						--Replace with a texture
+						self:SetText(text:sub(1, cursor - 1) .. text:sub(cursor + 1))
+						self:SetCursorPosition(cursor - 1)
+						self:Insert(char:upper()) --TODO: Change to replace with a texture
+					end
+				end
+			},
+			[1] = {
+				event = "OnShow",
+				handler = function(self) self:SetFocus() end
+			},
+			[2] = {
+				event = "OnEditFocusGained",
+				handler = function(self)
+					if self:GetText():gsub(GetChatSendSnippet(currentChatType) .. "(.*)", "%1") == "" then
+						currentChatType = "SAY"
+						self:SetText(wt.Color(CHAT_SAY_SEND, ChatTypeInfo[currentChatType]))
+					end
+					self:ClearHighlightText()
+				end
+			},
+			[3] = {
+				event = "OnEditFocusLost",
+				handler = function(self)
+					local type = "SAY"
+					if self:GetText():gsub(GetChatSendSnippet(currentChatType) .. "(.*)", "%1") == "" then
+						--Clear the input
+						self:SetText("")
+						self:ClearFocus()
+					end
+				end
+			},
+		},
+	})
 	rpkb:Hide()
 end
 
@@ -774,7 +918,7 @@ function rpkb:ADDON_LOADED(name)
 	--Set up the interface options
 	LoadInterfaceOptions()
 	--Set up the main frame & text
-	SetUpMainFrame()
+	SetUpChatFrame()
 end
 function rpkb:PLAYER_ENTERING_WORLD()
 	--Visibility notice
