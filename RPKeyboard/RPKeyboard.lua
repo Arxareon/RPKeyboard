@@ -110,71 +110,6 @@ end)
 
 --[[ UTILITIES ]]
 
-local currentChatType = "SAY"
-
----Generate a string snippet signaling the current chat type that goes at the start in a chat input field
----@param chatType string [ChatTypeId](https://wowwiki-archive.fandom.com/wiki/ChatTypeId)
----@return string
-local function GetChatSendSnippet(chatType)
-	if chatType == "SAY" then return CHAT_SAY_SEND end
-	if chatType == "YELL" then return CHAT_YELL_SEND end
-	if chatType == "WHISPER" then return CHAT_WHISPER_SEND:gsub("%%s", "Player-Realm") end --TODO: Figure out how/whether to handle whispers
-	if chatType == "EMOTE" then return UnitName("player") .. " " end
-	return ""
-end
-
----Generate a string snippet signaling the current chat type that goes at the start of a sent/received chat message
----@param chatType string [ChatTypeId](https://wowwiki-archive.fandom.com/wiki/ChatTypeId)
----@return string
-local function GetChatGetSnippet(chatType)
-	if chatType == "SAY" then return CHAT_SAY_GET:sub(3) end
-	if chatType == "YELL" then return CHAT_YELL_GET:sub(3) end
-	if chatType == "WHISPER" then return CHAT_WHISPER_GET:sub(3) end
-	if chatType == "EMOTE" then return " " end
-	return ": "
-end
-
----Check if the input text is recognizable as a chat command to change the current chat type
----@param command string Text to analyze in serach of a chat type change command
----@param appendSpace? boolean Whether or not to only check for commands with space appended [Default: false]
----@param removeSendSnippet? boolean Whether or not to remove the send snippet from the beginning [Default: true]
----@return boolean changed Whether the current chat type was changed or not
-local function ChangeChatTypeCommand(command, appendSpace, removeSendSnippet)
-	local oldChatType = currentChatType
-	local c = command
-	if removeSendSnippet ~= false then c = c:gsub(GetChatSendSnippet(currentChatType) .. "(.*)", "%1") end
-	c = c:lower()
-	local s = appendSpace == true and " " or ""
-	print(s, c, c == "/y" .. s or c == "/yell" .. s) --FIXME: Check why won't the string comparison work
-	if c == "/s" .. s or c == "/say" .. s then
-		currentChatType = "SAY"
-	elseif c == "/y" .. s or c == "/yell" .. s then
-		currentChatType = "YELL"
-	elseif c == "/e" .. s or c == "/emote" .. s then
-		currentChatType = "EMOTE"
-	end
-	return oldChatType ~= currentChatType
-end
-
---Toggle the RP Keyboard chat window
-RPKBTools.Toggle = function()
-	wt.SetVisibility(rpkb, not rpkb:IsShown())
-end
-
----Assemble a printable chat message text coming from the palyer that looks like a real chat message
----@param message string Text **your character** should communicate
---- - ***Note:*** When **chatType** is set to "EMOTE", **message** will be used as the custom emote text.
----@param chatType string [ChatTypeId](https://wowwiki-archive.fandom.com/wiki/ChatTypeId), the chat channel or type the message should be
----@return string
-RPKBTools.AssembleMessage = function(message, chatType)
-	local player = UnitName("player")
-	return wt.Color(
-		"|Hplayer:" .. player .. ":WHISPER:" .. GetRealmName():upper() .. "|h" .. (chatType == "EMOTE" and "" or "[") .. wt.Color(
-			player, C_ClassColor.GetClassColor(select(2, UnitClass("player")))
-		) .. (chatType == "EMOTE" and "" or "]") .. "|h" .. GetChatGetSnippet(chatType) .. message, ChatTypeInfo[chatType]
-	)
-end
-
 ---Find the ID of the font provided
 ---@param fontPath string
 ---@return integer
@@ -260,12 +195,78 @@ local function LoadDBs()
 	return firstLoad
 end
 
+--[ Chat Type Handling ]
+
+local currentChatType = "SAY"
+
+---Generate a string snippet signaling the current chat type that goes at the start in a chat input field
+---@param chatType string [ChatTypeId](https://wowwiki-archive.fandom.com/wiki/ChatTypeId)
+---@return string
+local function GetChatSendSnippet(chatType)
+	if chatType == "SAY" then return CHAT_SAY_SEND end
+	if chatType == "YELL" then return CHAT_YELL_SEND end
+	if chatType == "WHISPER" then return CHAT_WHISPER_SEND:gsub("%%s", "Player-Realm") end --TODO: Figure out how/whether to handle whispers
+	if chatType == "EMOTE" then return UnitName("player") .. " " end
+	return ""
+end
+
+---Generate a string snippet signaling the current chat type that goes at the start of a sent/received chat message
+---@param chatType string [ChatTypeId](https://wowwiki-archive.fandom.com/wiki/ChatTypeId)
+---@return string
+local function GetChatGetSnippet(chatType)
+	if chatType == "SAY" then return CHAT_SAY_GET:sub(3) end
+	if chatType == "YELL" then return CHAT_YELL_GET:sub(3) end
+	if chatType == "WHISPER" then return CHAT_WHISPER_GET:sub(3) end
+	if chatType == "EMOTE" then return " " end
+	return ": "
+end
+
+---Check if the input text is recognizable as a chat command to change the current chat type
+---@param command string Text to analyze in serach of a chat type change command
+---@param appendSpace? boolean Whether or not to only check for commands with space appended [Default: false]
+---@param removeSendSnippet? boolean Whether or not to remove the send snippet from the beginning [Default: true]
+---@return boolean changed Whether the current chat type was changed or not
+local function ChangeChatType(command, appendSpace, removeSendSnippet)
+	local oldChatType = currentChatType
+	local c = command
+	if removeSendSnippet ~= false then c = c:gsub(GetChatSendSnippet(currentChatType) .. "(.*)", "%1") end
+	c = c:lower()
+	local s = appendSpace == true and " " or ""
+	print(s, c, c == "/y" .. s or c == "/yell" .. s) --FIXME: Check why won't the string comparison work
+	if c == "/s" .. s or c == "/say" .. s then
+		currentChatType = "SAY"
+	elseif c == "/y" .. s or c == "/yell" .. s then
+		currentChatType = "YELL"
+	elseif c == "/e" .. s or c == "/emote" .. s then
+		currentChatType = "EMOTE"
+	end
+	return oldChatType ~= currentChatType
+end
+
 --[ Symbol Set Management ]
 
 ---comment
 local function UpdateSets()
-	
 end
+
+local function GetSymbolTexture(character)
+	--TDODO: Remoce TEMP:
+	if character == "!" then return textures.exc end
+	if character == "\"" then return textures.quo end
+	if character == "'" then return textures.apo end
+	if character == "," then return textures.com end
+	if character == "." then return textures.per end
+	if character == ":" then return textures.col end
+	if character == ";" then return textures.sem end
+	if character == "%?" then return textures.que end
+	if character:lower() == "a" then return textures.a end
+	if character:lower() == "b" then return textures.b end
+	if character:lower() == "c" then return textures.c end
+	if character:lower() == "d" then return textures.d end
+	return textures.logo
+end
+
+--[ Global Tools ]
 
 ---Add or update a set of symbols to the RP Keyboard table
 ---@param name string Displayed name of the symbol set
@@ -295,6 +296,25 @@ RPKBTools.AddSet = function(name, version, symbolSet, englishOnly, override)
 	--Update the UI
 	UpdateSets()
 	return key
+end
+
+--Toggle the RP Keyboard chat window
+RPKBTools.Toggle = function()
+	wt.SetVisibility(rpkb, not rpkb:IsShown())
+end
+
+---Assemble a printable chat message text coming from the palyer that looks like a real chat message
+---@param message string Text **your character** should communicate
+--- - ***Note:*** When **chatType** is set to "EMOTE", **message** will be used as the custom emote text.
+---@param chatType string [ChatTypeId](https://wowwiki-archive.fandom.com/wiki/ChatTypeId), the chat channel or type the message should be
+---@return string
+RPKBTools.AssembleMessage = function(message, chatType)
+	local player = UnitName("player")
+	return wt.Color(
+		"|Hplayer:" .. player .. ":WHISPER:" .. GetRealmName():upper() .. "|h" .. (chatType == "EMOTE" and "" or "[") .. wt.Color(
+			player, C_ClassColor.GetClassColor(select(2, UnitClass("player")))
+		) .. (chatType == "EMOTE" and "" or "]") .. "|h" .. GetChatGetSnippet(chatType) .. message, ChatTypeInfo[chatType]
+	)
 end
 
 
@@ -825,13 +845,7 @@ local function SetUpChatFrame()
 		title = false,
 		tooltip = { [0] = { text = "ho" }, },
 		onEnterPressed = function(self)
-			--Send the message
 			local text = self:GetText()
-			--Check for chat type change command
-			if ChangeChatTypeCommand(text:gsub(GetChatSendSnippet(currentChatType) .. "(.*)", "%1")) then
-				self:SetText(wt.Color(GetChatSendSnippet(currentChatType), ChatTypeInfo[currentChatType]))
-				return
-			end
 			--Send the message
 			if text ~= "" then
 				local message = text:gsub(GetChatSendSnippet(currentChatType) .. "(.*)", "%1")
@@ -853,20 +867,14 @@ local function SetUpChatFrame()
 				handler = function(self, user)
 					if not user then return end
 					local text = self:GetText()
-					--Check for chat type change command
-					if ChangeChatTypeCommand(text:gsub(GetChatSendSnippet(currentChatType) .. "(.*)", "%1"), true, true) then
-						self:SetText(wt.Color(GetChatSendSnippet(currentChatType), ChatTypeInfo[currentChatType]))
-						return
-					end
 					--Character check
 					local cursor = self:GetCursorPosition()
 					local char = text:sub(cursor, cursor)
-					--TODO: Add character check
-					if true then
+					if char:match("[!\"',%.:;A-Za-z]") then
 						--Replace with a texture
 						self:SetText(text:sub(1, cursor - 1) .. text:sub(cursor + 1))
 						self:SetCursorPosition(cursor - 1)
-						self:Insert(char:upper()) --TODO: Change to replace with a texture
+						self:Insert("|T" .. GetSymbolTexture(char) .. ":14:14:0:-2:32:32:4:28:4:28:" .. ChatTypeInfo[currentChatType].r * 255 .. ":" .. ChatTypeInfo[currentChatType].g * 255 .. ":" .. ChatTypeInfo[currentChatType].b * 255 .. "|t") --TODO: Change to replace with a texture
 					end
 				end
 			},
@@ -877,9 +885,8 @@ local function SetUpChatFrame()
 			[2] = {
 				event = "OnEditFocusGained",
 				handler = function(self)
-					if self:GetText():gsub(GetChatSendSnippet(currentChatType) .. "(.*)", "%1") == "" then
-						currentChatType = "SAY"
-						self:SetText(wt.Color(CHAT_SAY_SEND, ChatTypeInfo[currentChatType]))
+					if self:GetText() == "" then
+						self:SetText(wt.Color(GetChatSendSnippet(currentChatType), ChatTypeInfo[currentChatType]))
 					end
 					self:ClearHighlightText()
 				end
@@ -887,8 +894,7 @@ local function SetUpChatFrame()
 			[3] = {
 				event = "OnEditFocusLost",
 				handler = function(self)
-					local type = "SAY"
-					if self:GetText():gsub(GetChatSendSnippet(currentChatType) .. "(.*)", "%1") == "" then
+					if wt.ClearFormatting(self:GetText()):gsub(GetChatSendSnippet(currentChatType) .. "(.*)", "%1") == "" then
 						--Clear the input
 						self:SetText("")
 						self:ClearFocus()
@@ -919,6 +925,19 @@ function rpkb:ADDON_LOADED(name)
 	LoadInterfaceOptions()
 	--Set up the main frame & text
 	SetUpChatFrame()
+	--TDODO: Remoce TEMP:
+	textures.exc = root .. "Textures/0_Exclamation.tga"
+	textures.quo = root .. "Textures/1_Quotation.tga"
+	textures.apo = root .. "Textures/2_Apostrophe.tga"
+	textures.com = root .. "Textures/3_Comma.tga"
+	textures.per = root .. "Textures/4_Period.tga"
+	textures.col = root .. "Textures/5_Colon.tga"
+	textures.sem = root .. "Textures/6_Semicolon.tga"
+	textures.que = root .. "Textures/7_Question.tga"
+	textures.a = root .. "Textures/8_A.tga"
+	textures.b = root .. "Textures/9_B.tga"
+	textures.c = root .. "Textures/10_C.tga"
+	textures.d = root .. "Textures/11_D.tga"
 end
 function rpkb:PLAYER_ENTERING_WORLD()
 	--Visibility notice
