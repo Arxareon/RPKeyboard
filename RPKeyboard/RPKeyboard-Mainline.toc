@@ -8,7 +8,7 @@
 ## X-License: All Rights Reserved
 ## Notes: Type with fantasy letters & runes in chat and share them with addon users.
 ## SavedVariables: RPKeyboardDB, RPKeyboardCS
-## SavedVariablesPerCharacter: RPKeyboardDBC
+## SavedVariablesPerCharacter: RPKeyboardDBC, RPKeyboardCSC
 
 WidgetTools/WidgetTools.lua
 RPKeyboardLocalizations.lua

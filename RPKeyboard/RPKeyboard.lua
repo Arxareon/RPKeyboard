@@ -67,6 +67,7 @@ local anchors = {
 local db --Account-wide options
 local dbc --Character-specific options
 local cs --Cross-session account-wide data
+local csc --Cross-session account-wide data
 
 --Default values
 local dbDefault = {
@@ -179,10 +180,12 @@ local function LoadDBs()
 	end
 	if RPKeyboardDBC == nil then RPKeyboardDBC = wt.Clone(dbcDefault) end
 	if RPKeyboardCS == nil then RPKeyboardCS = {} end
+	if RPKeyboardCSC == nil then RPKeyboardCSC = {} end
 	--Load the DBs
 	db = wt.Clone(RPKeyboardDB) --Account-wide options DB copy
 	dbc = wt.Clone(RPKeyboardDBC) --Character-specific options DB copy
 	cs = RPKeyboardCS --Cross-session account-wide data direct reference
+	csc = RPKeyboardCSC --Cross-session character-specific data direct reference
 	--DB checkup & fix
 	wt.RemoveEmpty(db, CheckValidity)
 	wt.RemoveEmpty(dbc, CheckValidity)
@@ -273,10 +276,13 @@ end
 ---@param version string The current version number of this set
 ---@param symbolSet table Table containing file paths of the symbol textures in alphabetical order [indexed, 0-based, #33]
 --- - ***Note:*** Texture files must be in JPEG (no transparency), TGA or BLP format with powers of 2 dimensions (recommanded: 32 x 32).
+--- - ***Note:*** Flat white color is preferred so the symbols may be recolored to any color.
 ---@param englishOnly boolean Whether or not the symbol set covers only the English alphabet [Default: true]
+--- - ***Note:*** Non-English based alphabets are not currently supported.
 ---@param override boolean Whether to override the symbol set if one already exist with the given key [Default: false]
 ---@return string? key The symbol set table will be listed under this key in the RP Keyboard table [Default: nil *(on error)*]
 RPKBTools.AddSet = function(name, version, symbolSet, englishOnly, override)
+	if englishOnly ~= false then return end
 	local key = name:gsub("%s+", ""):lower()
 	--Check for an existing set
 	if symbolSet.key ~= nil and override ~= true then return nil end
@@ -300,7 +306,9 @@ end
 
 --Toggle the RP Keyboard chat window
 RPKBTools.Toggle = function()
-	wt.SetVisibility(rpkb, not rpkb:IsShown())
+	local visible = rpkb:IsShown()
+	wt.SetVisibility(rpkb, not visible)
+	csc.visible = not visible
 end
 
 ---Assemble a printable chat message text coming from the palyer that looks like a real chat message
@@ -819,91 +827,246 @@ end
 
 --Set frame parameters
 local function SetUpChatFrame()
-	--Main frame
-	rpkb:SetSize(ChatFrame1EditBox:GetWidth(), 80)
+
+	--[ Main frame ]
+
+	rpkb:SetSize(ChatFrame1EditBox:GetWidth(), 32)
 	rpkb:SetPoint("TOPLEFT", ChatFrame1EditBox, "BOTTOMLEFT")
 	rpkb:SetFrameStrata("HIGH")
-	wt.SetVisibility(rpkb, not dbc.disabled)
-	--Add panel
-	local panel = wt.CreatePanel({
-		parent = rpkb,
-		position = { anchor = "TOPLEFT", },
-		size = { width = rpkb:GetWidth(), height = rpkb:GetHeight() },
-		title = "Frame",
-		showTitle = false,
+	wt.SetVisibility(rpkb, csc.visible)
+	rpkb:EnableMouse(true)
+
+	--[ Toggle ]
+
+	--Button
+	local toggle = CreateFrame("Button", rpkb:GetName() .. "ToggleButton", UIParent, BackdropTemplateMixin and "BackdropTemplate")
+	toggle:SetPoint("TOP", ChatFrameMenuButton, "BOTTOM", 0, -37)
+	toggle:SetSize(21, 21)
+	if not rpkb:IsVisible() then toggle:SetAlpha(0.4) end
+	toggle:SetScript("OnClick", function() RPKBTools.Toggle() end)
+
+	--Logo
+	wt.CreateTexture({
+		parent = toggle,
+		path = textures.logo,
+		position = {
+			anchor = "TOPLEFT",
+			offset = { x = 0, y = 0 }
+		},
+		size = { width = toggle:GetWidth(), height = toggle:GetHeight() },
 	})
-	panel:EnableMouse(true)
-	--Add input box
-	local chatbox = wt.CreateEditBox({
-		parent = panel,
+
+	--[ Background art ]
+
+	local artCenter = wt.CreateTexture({
+		parent = rpkb,
+		path = "Interface/ChatFrame/UI-ChatInputBorder-Mid2",
 		position = {
 			anchor = "TOP",
-			offset = { x = 3, y = -6 },
+			offset = { x = 0, y = 2 }
 		},
-		width = panel:GetWidth() - 16,
-		label = "hey",
-		title = false,
-		tooltip = { [0] = { text = "ho" }, },
-		onEnterPressed = function(self)
-			local text = self:GetText()
-			--Send the message
-			if text ~= "" then
-				local message = text:gsub(GetChatSendSnippet(currentChatType) .. "(.*)", "%1")
-				--TODO: Add message tramission
-				print(RPKBTools.AssembleMessage(message, currentChatType))
-			end
-			--Clear the input
-			self:SetText("")
-			self:ClearFocus()
-		end,
-		onEscapePressed = function(self)
-			--Clear the input
-			self:SetText("")
-			self:ClearFocus()
-		end,
-		onEvent = {
-			[0] = {
-				event = "OnTextChanged",
-				handler = function(self, user)
-					if not user then return end
-					local text = self:GetText()
-					--Character check
-					local cursor = self:GetCursorPosition()
-					local char = text:sub(cursor, cursor)
-					if char:match("[!\"',%.:;A-Za-z]") then
-						--Replace with a texture
-						self:SetText(text:sub(1, cursor - 1) .. text:sub(cursor + 1))
-						self:SetCursorPosition(cursor - 1)
-						self:Insert("|T" .. GetSymbolTexture(char) .. ":14:14:0:-2:32:32:4:28:4:28:" .. ChatTypeInfo[currentChatType].r * 255 .. ":" .. ChatTypeInfo[currentChatType].g * 255 .. ":" .. ChatTypeInfo[currentChatType].b * 255 .. "|t") --TODO: Change to replace with a texture
-					end
-				end
-			},
-			[1] = {
-				event = "OnShow",
-				handler = function(self) self:SetFocus() end
-			},
-			[2] = {
-				event = "OnEditFocusGained",
-				handler = function(self)
-					if self:GetText() == "" then
-						self:SetText(wt.Color(GetChatSendSnippet(currentChatType), ChatTypeInfo[currentChatType]))
-					end
-					self:ClearHighlightText()
-				end
-			},
-			[3] = {
-				event = "OnEditFocusLost",
-				handler = function(self)
-					if wt.ClearFormatting(self:GetText()):gsub(GetChatSendSnippet(currentChatType) .. "(.*)", "%1") == "" then
-						--Clear the input
-						self:SetText("")
-						self:ClearFocus()
-					end
-				end
-			},
-		},
+		size = { width = rpkb:GetWidth() - 64, height = 32 },
+		tile = true,
 	})
-	rpkb:Hide()
+
+	local artLeft = wt.CreateTexture({
+		parent = rpkb,
+		path = "Interface/ChatFrame/UI-ChatInputBorder-Left2",
+		position = {
+			anchor = "RIGHT",
+			relativeTo = artCenter,
+			relativePoint = "LEFT",
+			offset = { x = 0, y = 0 }
+		},
+		size = { width = 32, height = 32 },
+	})
+
+	local artRight = wt.CreateTexture({
+		parent = rpkb,
+		path = "Interface/ChatFrame/UI-ChatInputBorder-Right2",
+		position = {
+			anchor = "LEFT",
+			relativeTo = artCenter,
+			relativePoint = "RIGHT",
+			offset = { x = 0, y = 0 }
+		},
+		size = { width = 32, height = 32 },
+	})
+
+	--[ Message preview ]
+
+	--Background panel
+	local preview = wt.CreatePanel({
+		parent = rpkb,
+		position = {
+			anchor = "TOP",
+			offset = { x = 0, y = -26 }
+		},
+		size = { width = rpkb:GetWidth() - 10, height = 78 },
+		title = "Preview",
+		showTitle = false,
+	})
+	preview:Hide()
+
+	--Scroll frame
+	local previewContent, previewFrame = wt.CreateScrollFrame({
+		parent = preview,
+		position = { anchor = "CENTER", },
+		size = { width = preview:GetWidth() - 12, height = preview:GetHeight() - 12 },
+		scrollSize = { height = 65 },
+		scrollSpeed = 17,
+	})
+	_G[previewFrame:GetName() .. "ScrollBarScrollUpButton"]:ClearAllPoints()
+	_G[previewFrame:GetName() .. "ScrollBarScrollUpButton"]:SetPoint("TOPRIGHT", previewFrame, "TOPRIGHT", 2, 1)
+	_G[previewFrame:GetName() .. "ScrollBarScrollDownButton"]:ClearAllPoints()
+	_G[previewFrame:GetName() .. "ScrollBarScrollDownButton"]:SetPoint("BOTTOMRIGHT", previewFrame, "BOTTOMRIGHT", 2, -1)
+	_G[previewFrame:GetName() .. "ScrollBar"]:ClearAllPoints()
+	_G[previewFrame:GetName() .. "ScrollBar"]:SetPoint("TOP", _G[previewFrame:GetName() .. "ScrollBarScrollUpButton"], "BOTTOM")
+	_G[previewFrame:GetName() .. "ScrollBar"]:SetPoint("BOTTOM", _G[previewFrame:GetName() .. "ScrollBarScrollDownButton"], "TOP")
+	_G[previewFrame:GetName() .. "ScrollBarBackground"]:SetSize(_G[previewFrame:GetName() .. "ScrollBar"]:GetWidth() + 1, _G[previewFrame:GetName() .. "ScrollBar"]:GetHeight() - 6)
+
+	--Text
+	local previewText = wt.CreateText({
+		frame = previewContent,
+		position = {
+			anchor = "TOP",
+			offset = { x = 0, y = 1 }
+		},
+		width = previewContent:GetWidth(),
+		justify = "LEFT",
+		template = "ChatFontNormal",
+	})
+
+	--[ Chat Type ]
+
+	local chatType = wt.CreateText({
+		frame = rpkb,
+		name = "ChatType",
+		position = {
+			anchor = "LEFT",
+			relativeTo = artLeft,
+			relativePoint = "LEFT",
+			offset = { x = 15, y = 0 },
+		},
+		width = 80,
+		justify = "LEFT",
+		template = "ChatFontNormal",
+	})
+
+	--[ Editbox ]
+
+	--Frame
+	local editBox = CreateFrame("EditBox", rpkb:GetName() .. "InputBox", rpkb, BackdropTemplateMixin and "BackdropTemplate")
+	editBox:SetPoint("RIGHT", artRight, "RIGHT", -12, 0)
+	editBox:SetSize(rpkb:GetWidth() - 57, 17)
+
+	--Font & text
+	editBox:SetMultiLine(false)
+	editBox:SetFontObject(ChatFontNormal)
+	editBox:SetJustifyH("LEFT")
+	editBox:SetJustifyV("MIDDLE")
+	editBox:SetMaxLetters(255)
+
+	--Art visibility
+	artCenter:SetAlpha(0.3)
+	artLeft:SetAlpha(0.3)
+	artRight:SetAlpha(0.3)
+
+	--Events & behavior
+	editBox:SetAutoFocus(false)
+	rpkb:SetScript("OnMouseDown", function() editBox:SetFocus() end)
+	rpkb:SetScript("OnShow", function()
+		toggle:SetAlpha(1)
+		editBox:SetFocus()
+	end)
+	rpkb:SetScript("OnHide", function() toggle:SetAlpha(0.4) end)
+	editBox:SetScript("OnEditFocusGained", function(self)
+		--Art
+		artCenter:SetAlpha(1)
+		artLeft:SetAlpha(1)
+		artRight:SetAlpha(1)
+		--Chat type
+		chatType:SetText(wt.Color(GetChatSendSnippet(currentChatType), ChatTypeInfo[currentChatType]))
+		--Preview
+		preview:Show()
+	end)
+	editBox:SetScript("OnEditFocusLost", function(self)
+		if self:GetText() ~= "" then return end
+		--Art
+		artCenter:SetAlpha(0.3)
+		artLeft:SetAlpha(0.3)
+		artRight:SetAlpha(0.3)
+		--Preview
+		previewText:SetText("")
+		preview:Hide()
+		--Chat type
+		chatType:SetText("")
+	end)
+	editBox:SetScript("OnTextChanged", function(self, user)
+		if not user then return end
+		--Update preview
+		local text = wt.ClearFormatting(self:GetText())
+		local message = ""
+		previewText:SetText("")
+		for i = 1, #text do
+			local char = text:sub(i, i)
+			if char:match("[!\"',%.:;A-Za-z]") then
+				--Replace with a texture
+				message = message .. "|T" .. GetSymbolTexture(char) .. ":14:14:0:-2:32:32:4:28:4:28:" .. ChatTypeInfo[currentChatType].r * 255 .. ":" .. ChatTypeInfo[currentChatType].g * 255 .. ":" .. ChatTypeInfo[currentChatType].b * 255 .. "|t"
+			else
+				message = message .. char
+			end
+		end
+		previewText:SetText(message)
+	end)
+	editBox:SetScript("OnEnterPressed", function(self)
+		if self:GetText() ~= "" then
+			--Send the message
+			local message = previewText:GetText():gsub("%s" .. GetChatSendSnippet(currentChatType) .. "(.*)", "%1")
+			--TODO: Add message tramission
+			print("|T" .. textures.logo .. ":8:8:0:-1|t" .. RPKBTools.AssembleMessage(message, currentChatType))
+		end
+		--Clear the input
+		self:SetText("")
+		self:ClearFocus()
+	end)
+	editBox:SetScript("OnEscapePressed", function(self)
+		--Clear the input
+		self:SetText("")
+		self:ClearFocus()
+	end)
+
+	--Tooltip
+	-- editBox:HookScript("OnEnter", function()
+	-- 	WidgetToolbox[ns.WidgetToolsVersion].AddTooltip(nil, editBox, "ANCHOR_RIGHT", t.label, t.tooltip)
+	-- end)
+	-- editBox:HookScript("OnLeave", function() customTooltip:Hide() end)
+
+	--[ Resizing Events ]
+
+	ChatFrame1ResizeButton:HookScript("OnMouseUp", function()
+		rpkb:SetWidth(ChatFrame1EditBox:GetWidth())
+		preview:SetWidth(rpkb:GetWidth() - 10)
+		previewFrame:SetWidth(preview:GetWidth() - 8)
+		previewContent:SetWidth(previewFrame:GetWidth() - 20)
+		previewText:SetWidth(previewContent:GetWidth())
+		artCenter:SetWidth(rpkb:GetWidth() - 64)
+		editBox:SetWidth(rpkb:GetWidth() - 57)
+	end)
+
+	local ConfirmRedockChatOnAccept = StaticPopupDialogs["CONFIRM_REDOCK_CHAT"].OnAccept
+	StaticPopupDialogs["CONFIRM_REDOCK_CHAT"].OnAccept = function()
+		--Call the original Blizzard function
+		ConfirmRedockChatOnAccept()
+		--Resize RPKB elements
+		rpkb:SetWidth(ChatFrame1EditBox:GetWidth())
+		preview:SetWidth(rpkb:GetWidth() - 10)
+		previewFrame:SetWidth(preview:GetWidth() - 8)
+		previewContent:SetWidth(previewFrame:GetWidth() - 20)
+		previewText:SetWidth(previewContent:GetWidth())
+		artCenter:SetWidth(rpkb:GetWidth() - 64)
+		editBox:SetWidth(rpkb:GetWidth() - 57)
+	end
 end
 
 --[ Loading ]
@@ -916,8 +1079,10 @@ function rpkb:ADDON_LOADED(name)
 		PrintInfo()
 		cs.first = true
 	end
-	--Create cross-session character-specific variables
+	--Create cross-session account-wide variables
 	if cs.compactBackup == nil then cs.compactBackup = true end
+	--Create cross-session character-specific variables
+	if csc.visible == nil then csc.visible = false end
 	--Set key binding labels
 	BINDING_HEADER_RPKB = addon
 	BINDING_NAME_RPKB_TOGGLE = strings.keybinds.toggle

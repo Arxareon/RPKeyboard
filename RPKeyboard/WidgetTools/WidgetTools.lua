@@ -1034,7 +1034,7 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 		WidgetToolbox[ns.WidgetToolsVersion].PositionFrame(
 			scrollFrame, t.position.anchor, t.position.relativeTo, t.position.relativePoint, (t.position.offset or {}).x, (t.position.offset or {}).y
 		)
-		scrollFrame:SetSize((t.size or {}).width or t.parent:GetWidth(), (t.size or {}).height)
+		scrollFrame:SetSize((t.size or {}).width or t.parent:GetWidth(), (t.size or {}).height or t.parent:GetHeight())
 		--Scrollbar & buttons
 		_G[scrollFrame:GetName() .. "ScrollBarScrollUpButton"]:ClearAllPoints()
 		_G[scrollFrame:GetName() .. "ScrollBarScrollUpButton"]:SetPoint("TOPRIGHT", scrollFrame, "TOPRIGHT", -2, -3)
