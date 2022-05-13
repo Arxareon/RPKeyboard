@@ -83,6 +83,50 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	---|'"Dropdown"'
 	---|'"ColorPicker"'
 
+	---@alias HyperlinkType
+	---|'"achievement"'
+	---|'"api"'
+	---|'"azessence"'
+	---|'"battlepet"'
+	---|'"battlePetAbil"'
+	---|'"calendarEvent"'
+	---|'"channel"'
+	---|'"clubFinder"'
+	---|'"clubTicket"'
+	---|'"community"'
+	---|'"conduit"'
+	---|'"currency"'
+	---|'"death"'
+	---|'"enchant"'
+	---|'"garrfollower"'
+	---|'"garrfollowerability"'
+	---|'"garrmission"'
+	---|'"instancelock"'
+	---|'"item"'
+	---|'"journal"'
+	---|'"keystone"'
+	---|'"levelup"'
+	---|'"lootHistory"'
+	---|'"outfit"'
+	---|'"player"'
+	---|'"playerCommunity"'
+	---|'"BNplayer"'
+	---|'"BNplayerCommunity"'
+	---|'"quest"'
+	---|'"shareachieve"'
+	---|'"shareitem"'
+	---|'"sharess"'
+	---|'"spell"'
+	---|'"storecategory"'
+	---|'"talent"'
+	---|'"trade"'
+	---|'"transmogappearance"'
+	---|'"transmogillusion"'
+	---|'"transmogset"'
+	---|'"unit"'
+	---|'"urlIndex"'
+	---|'"worldmap"'
+
 
 	--[[ UTILITIES ]]
 
@@ -478,7 +522,7 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 		if frame["SetUserPlaced"] ~= nil and frame:IsMovable() then frame:SetUserPlaced(userPlaced == true) end
 	end
 
-	--[ Widget Dependency Management ]
+	--[ Widget Dependency Handling ]
 
 	---Check all dependencies (disable / enable rules) of a frame
 	---@param rules table Indexed, 0-based table containing the dependency rules of the frame object
@@ -585,12 +629,7 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	WidgetToolbox[ns.WidgetToolsVersion].AddOptionsData = function(widget, type, onSave, onLoad, optionsTable, optionsData)
 		--Set the options data table
 		if optionsTable == nil then
-			if WidgetToolbox[ns.WidgetToolsVersion] == nil then
-				WidgetToolbox[ns.WidgetToolsVersion] = {}
-				WidgetToolbox[ns.WidgetToolsVersion].OptionsData = {}
-			elseif WidgetToolbox[ns.WidgetToolsVersion].OptionsData == nil then
-				WidgetToolbox[ns.WidgetToolsVersion].OptionsData = {}
-			end
+			if WidgetToolbox[ns.WidgetToolsVersion].OptionsData == nil then WidgetToolbox[ns.WidgetToolsVersion].OptionsData = {} end
 			optionsTable = WidgetToolbox[ns.WidgetToolsVersion].OptionsData
 		end
 		--Add the options data
@@ -686,6 +725,51 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 				--Signal that the widget's value has been loaded to trigger the OnAttributeChanged event
 			end
 		end
+	end
+
+	--[ Hyperlink Handlers ]
+
+	---Format a string to be a clikable hyperlink text via escape sequences
+	--- - ***Note:*** To make a custom hyperlink handled by an addon, *"item"* may be used as **type**, followed by a unique addon identifier key as the first parameter, and a unique key signifying which handler function to call (to allow for multiple different hyperlinks to be set for an addon) as the second parameter of **content**. Then, **WidgetToolbox[ns.WidgetToolsVersion].SetHyperlinkHandler** may be used to set a fuction to handle clicks on the custom hyperlink.
+	---@param type HyperlinkType [Type of the hyperlink](https://wowpedia.fandom.com/wiki/Hyperlinks#Types) determining how it's being handled and what payload it carries
+	---@param content string A colon-separated chain of parameters determined by the [type of the hyperlink](https://wowpedia.fandom.com/wiki/Hyperlinks#Types)
+	---@param text string Clickable text to be displayed as the hyperlink
+	---@return string
+	WidgetToolbox[ns.WidgetToolsVersion].Hyperlink = function(type, content, text)
+		return "\124H" .. type .. ":" .. content .. "\124h" .. text .. "\124h"
+	end
+
+	---Register a function to handle custom hyperlink clicks
+	---@param addonKey string Addon namespace key used for a subtable in **WidgetToolbox[ns.WidgetToolsVersion].HyperlinkHandlers**
+	---@param handlerKey string Handler function name key used to identify the function within **WidgetToolbox[ns.WidgetToolsVersion].HyperlinkHandlers[addonKey]**
+	---@param handlerFunction function Function to be called by clicking on a hyperlink text created via |Hitem:**addonKey**:**handlerKey**:*arg*|h*Text*|h
+	WidgetToolbox[ns.WidgetToolsVersion].SetHyperlinkHandler = function(addonKey, handlerKey, handlerFunction)
+		--Set the table containing the hyperlink handlers
+		if WidgetToolbox[ns.WidgetToolsVersion].HyperlinkHandlers == nil then
+			--Create the table
+			WidgetToolbox[ns.WidgetToolsVersion].HyperlinkHandlers = {}
+			--Hook the hyprlink handler caller
+			hooksecurefunc(ItemRefTooltip, "SetHyperlink", function(...)
+				local _, linkType = ...
+				local _, addonID, handlerID, content = strsplit(":", linkType)
+				--Check if it's a registered addon
+				for key, addonHandlers in pairs(WidgetToolbox[ns.WidgetToolsVersion].HyperlinkHandlers) do
+					if addonID == key then
+						--Check if there is a valid handler to call
+						for k, handler in pairs(addonHandlers) do
+							if handlerID == k then
+								--Call the handler function
+								handler(content)
+								return
+							end
+						end
+					end
+				end
+			end)
+		end
+		--Add the hyperlink handler function to the table
+		if WidgetToolbox[ns.WidgetToolsVersion].HyperlinkHandlers[addonKey] == nil then WidgetToolbox[ns.WidgetToolsVersion].HyperlinkHandlers[addonKey] = {} end
+		WidgetToolbox[ns.WidgetToolsVersion].HyperlinkHandlers[addonKey][handlerKey] = handlerFunction
 	end
 
 

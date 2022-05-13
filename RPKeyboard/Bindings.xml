@@ -1,5 +1,8 @@
 <Bindings>
-	<Binding name="RPKB_TOGGLE" header="RPKB" category="ADDONS" default="CTRL-ENTER">
+	<Binding name="RPKB_OPEN" header="RPKB" category="ADDONS" default="CTRL-ENTER">
+		RPKBTools.OpenChat()
+	</Binding>
+	<Binding name="RPKB_TOGGLE" category="ADDONS" default="CTRL-SHIFT-ENTER">
 		RPKBTools.Toggle()
 	</Binding>
 </Bindings>

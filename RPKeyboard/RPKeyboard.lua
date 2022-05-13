@@ -96,15 +96,18 @@ RPKBTools = {}
 
 --[ Main Frame ]
 
+--Addon frame references
+local frames = {}
+
 --Creating frames
-local rpkb = CreateFrame("Frame", addonNameSpace, UIParent) --Main addon frame
+frames.rpkb = CreateFrame("Frame", addonNameSpace, UIParent) --Main addon frame
 
 --Registering events
-rpkb:RegisterEvent("ADDON_LOADED")
-rpkb:RegisterEvent("PLAYER_ENTERING_WORLD")
+frames.rpkb:RegisterEvent("ADDON_LOADED")
+frames.rpkb:RegisterEvent("PLAYER_ENTERING_WORLD")
 
 --Event handler
-rpkb:SetScript("OnEvent", function(self, event, ...)
+frames.rpkb:SetScript("OnEvent", function(self, event, ...)
 	return self[event] and self[event](self, ...)
 end)
 
@@ -250,6 +253,7 @@ end
 
 ---comment
 local function UpdateSets()
+
 end
 
 local function GetSymbolTexture(character)
@@ -304,11 +308,29 @@ RPKBTools.AddSet = function(name, version, symbolSet, englishOnly, override)
 	return key
 end
 
---Toggle the RP Keyboard chat window
-RPKBTools.Toggle = function()
-	local visible = rpkb:IsShown()
-	wt.SetVisibility(rpkb, not visible)
-	csc.visible = not visible
+---Toggle the RP Keyboard chat window
+---@param visible boolean Whether to hide or show the RP Keyboard chat window [Default: flip the current frame visibility]
+---@param openChat boolean Automatically activate the chat input after the window is made visible [Default: true]
+RPKBTools.Toggle = function(visible, openChat)
+	--Set visibility
+	if visible == nil then visible = not frames.rpkb:IsShown() end
+	wt.SetVisibility(frames.rpkb, visible)
+	csc.visible = visible
+	--Update the UI
+	if visible then
+		frames.toggle:SetAlpha(1)
+		if openChat ~= false then frames.rpkb.editBox:SetFocus() end
+	else
+		frames.rpkb:SetScript("OnHide", function() frames.toggle:SetAlpha(0.4) end)
+	end
+end
+
+--Open the RP Keyboard chat window to write a message
+RPKBTools.OpenChat = function()
+	--Enable the chat window
+	RPKBTools.Toggle(true)
+	--Focus the Editbox
+	frames.rpkb.editBox:SetFocus()
 end
 
 ---Assemble a printable chat message text coming from the palyer that looks like a real chat message
@@ -756,7 +778,7 @@ end
 ---@param load boolean [Default: false]
 local function PrintStatus(load)
 	if load == true and not db.statusNotice then return end
-	print(wt.Color(rpkb:IsVisible() and strings.chat.status.enabled:gsub(
+	print(wt.Color(frames.rpkb:IsVisible() and strings.chat.status.enabled:gsub(
 		"#ADDON", wt.Color(addon, colors.red[0])
 	) or strings.chat.status.disabled:gsub(
 		"#ADDON", wt.Color(addon, colors.red[0])
@@ -794,7 +816,7 @@ end
 
 local function ToggleCommand()
 	dbc.disabled = not dbc.disabled
-	wt.SetVisibility(rpkb, not dbc.disabled)
+	wt.SetVisibility(frames.rpkb, not dbc.disabled)
 	--Response
 	print(wt.Color(dbc.disabled and strings.chat.toggle.disabled:gsub(
 			"#ADDON", wt.Color(addon, colors.red[0])
@@ -823,86 +845,49 @@ end
 
 --[[ INITIALIZATION ]]
 
---[ Main Frame Setup ]
+--[ Frame Setup ]
 
---Set frame parameters
+--Set chat frame parameters
 local function SetUpChatFrame()
 
-	--[ Main frame ]
+	--[ Main Frame ]
 
-	rpkb:SetSize(ChatFrame1EditBox:GetWidth(), 32)
-	rpkb:SetPoint("TOPLEFT", ChatFrame1EditBox, "BOTTOMLEFT")
-	rpkb:SetFrameStrata("HIGH")
-	wt.SetVisibility(rpkb, csc.visible)
-	rpkb:EnableMouse(true)
+	frames.rpkb:SetSize(ChatFrame1EditBox:GetWidth(), 32)
+	frames.rpkb:SetPoint("TOPLEFT", ChatFrame1EditBox, "BOTTOMLEFT")
+	frames.rpkb:SetFrameStrata("HIGH")
+	wt.SetVisibility(frames.rpkb, csc.visible)
+	frames.rpkb:EnableMouse(true)
 
 	--[ Toggle ]
 
 	--Button
-	local toggle = CreateFrame("Button", rpkb:GetName() .. "ToggleButton", UIParent, BackdropTemplateMixin and "BackdropTemplate")
-	toggle:SetPoint("TOP", ChatFrameMenuButton, "BOTTOM", 0, -37)
-	toggle:SetSize(21, 21)
-	if not rpkb:IsVisible() then toggle:SetAlpha(0.4) end
-	toggle:SetScript("OnClick", function() RPKBTools.Toggle() end)
+	frames.toggle = CreateFrame("Button", frames.rpkb:GetName() .. "ToggleButton", UIParent, BackdropTemplateMixin and "BackdropTemplate")
+	frames.toggle:SetPoint("TOP", ChatFrameMenuButton, "BOTTOM", 0, -37)
+	frames.toggle:SetSize(21, 21)
+	if not frames.rpkb:IsVisible() then frames.toggle:SetAlpha(0.4) end
+	frames.toggle:SetScript("OnClick", function() RPKBTools.Toggle() end)
 
 	--Logo
 	wt.CreateTexture({
-		parent = toggle,
+		parent = frames.toggle,
 		path = textures.logo,
 		position = {
 			anchor = "TOPLEFT",
 			offset = { x = 0, y = 0 }
 		},
-		size = { width = toggle:GetWidth(), height = toggle:GetHeight() },
+		size = { width = frames.toggle:GetWidth(), height = frames.toggle:GetHeight() },
 	})
 
-	--[ Background art ]
-
-	local artCenter = wt.CreateTexture({
-		parent = rpkb,
-		path = "Interface/ChatFrame/UI-ChatInputBorder-Mid2",
-		position = {
-			anchor = "TOP",
-			offset = { x = 0, y = 2 }
-		},
-		size = { width = rpkb:GetWidth() - 64, height = 32 },
-		tile = true,
-	})
-
-	local artLeft = wt.CreateTexture({
-		parent = rpkb,
-		path = "Interface/ChatFrame/UI-ChatInputBorder-Left2",
-		position = {
-			anchor = "RIGHT",
-			relativeTo = artCenter,
-			relativePoint = "LEFT",
-			offset = { x = 0, y = 0 }
-		},
-		size = { width = 32, height = 32 },
-	})
-
-	local artRight = wt.CreateTexture({
-		parent = rpkb,
-		path = "Interface/ChatFrame/UI-ChatInputBorder-Right2",
-		position = {
-			anchor = "LEFT",
-			relativeTo = artCenter,
-			relativePoint = "RIGHT",
-			offset = { x = 0, y = 0 }
-		},
-		size = { width = 32, height = 32 },
-	})
-
-	--[ Message preview ]
+	--[ Message Preview ]
 
 	--Background panel
 	local preview = wt.CreatePanel({
-		parent = rpkb,
+		parent = frames.rpkb,
 		position = {
 			anchor = "TOP",
 			offset = { x = 0, y = -26 }
 		},
-		size = { width = rpkb:GetWidth() - 10, height = 78 },
+		size = { width = frames.rpkb:GetWidth() - 10, height = 78 },
 		title = "Preview",
 		showTitle = false,
 	})
@@ -937,10 +922,47 @@ local function SetUpChatFrame()
 		template = "ChatFontNormal",
 	})
 
-	--[ Chat Type ]
+	--[ Background Art ]
 
-	local chatType = wt.CreateText({
-		frame = rpkb,
+	local artCenter = wt.CreateTexture({
+		parent = frames.rpkb,
+		path = "Interface/ChatFrame/UI-ChatInputBorder-Mid2",
+		position = {
+			anchor = "TOP",
+			offset = { x = 0, y = 2 }
+		},
+		size = { width = frames.rpkb:GetWidth() - 64, height = 32 },
+		tile = true,
+	})
+
+	local artLeft = wt.CreateTexture({
+		parent = frames.rpkb,
+		path = "Interface/ChatFrame/UI-ChatInputBorder-Left2",
+		position = {
+			anchor = "RIGHT",
+			relativeTo = artCenter,
+			relativePoint = "LEFT",
+			offset = { x = 0, y = 0 }
+		},
+		size = { width = 32, height = 32 },
+	})
+
+	local artRight = wt.CreateTexture({
+		parent = frames.rpkb,
+		path = "Interface/ChatFrame/UI-ChatInputBorder-Right2",
+		position = {
+			anchor = "LEFT",
+			relativeTo = artCenter,
+			relativePoint = "RIGHT",
+			offset = { x = 0, y = 0 }
+		},
+		size = { width = 32, height = 32 },
+	})
+
+	--[ Chat Type Indicator ]
+
+	frames.rpkb.chatType = wt.CreateText({
+		frame = frames.rpkb,
 		name = "ChatType",
 		position = {
 			anchor = "LEFT",
@@ -956,16 +978,16 @@ local function SetUpChatFrame()
 	--[ Editbox ]
 
 	--Frame
-	local editBox = CreateFrame("EditBox", rpkb:GetName() .. "InputBox", rpkb, BackdropTemplateMixin and "BackdropTemplate")
-	editBox:SetPoint("RIGHT", artRight, "RIGHT", -12, 0)
-	editBox:SetSize(rpkb:GetWidth() - 57, 17)
+	frames.rpkb.editBox = CreateFrame("EditBox", frames.rpkb:GetName() .. "InputBox", frames.rpkb, BackdropTemplateMixin and "BackdropTemplate")
+	frames.rpkb.editBox:SetPoint("RIGHT", artRight, "RIGHT", -12, 0)
+	frames.rpkb.editBox:SetSize(frames.rpkb:GetWidth() - 57, 17)
 
 	--Font & text
-	editBox:SetMultiLine(false)
-	editBox:SetFontObject(ChatFontNormal)
-	editBox:SetJustifyH("LEFT")
-	editBox:SetJustifyV("MIDDLE")
-	editBox:SetMaxLetters(255)
+	frames.rpkb.editBox:SetMultiLine(false)
+	frames.rpkb.editBox:SetFontObject(ChatFontNormal)
+	frames.rpkb.editBox:SetJustifyH("LEFT")
+	frames.rpkb.editBox:SetJustifyV("MIDDLE")
+	frames.rpkb.editBox:SetMaxLetters(255)
 
 	--Art visibility
 	artCenter:SetAlpha(0.3)
@@ -973,24 +995,19 @@ local function SetUpChatFrame()
 	artRight:SetAlpha(0.3)
 
 	--Events & behavior
-	editBox:SetAutoFocus(false)
-	rpkb:SetScript("OnMouseDown", function() editBox:SetFocus() end)
-	rpkb:SetScript("OnShow", function()
-		toggle:SetAlpha(1)
-		editBox:SetFocus()
-	end)
-	rpkb:SetScript("OnHide", function() toggle:SetAlpha(0.4) end)
-	editBox:SetScript("OnEditFocusGained", function(self)
+	frames.rpkb.editBox:SetAutoFocus(false)
+	frames.rpkb:SetScript("OnMouseDown", function() frames.rpkb.editBox:SetFocus() end)
+	frames.rpkb.editBox:SetScript("OnEditFocusGained", function(self)
 		--Art
 		artCenter:SetAlpha(1)
 		artLeft:SetAlpha(1)
 		artRight:SetAlpha(1)
 		--Chat type
-		chatType:SetText(wt.Color(GetChatSendSnippet(currentChatType), ChatTypeInfo[currentChatType]))
+		frames.rpkb.chatType:SetText(wt.Color(GetChatSendSnippet(currentChatType), ChatTypeInfo[currentChatType]))
 		--Preview
 		preview:Show()
 	end)
-	editBox:SetScript("OnEditFocusLost", function(self)
+	frames.rpkb.editBox:SetScript("OnEditFocusLost", function(self)
 		if self:GetText() ~= "" then return end
 		--Art
 		artCenter:SetAlpha(0.3)
@@ -1000,9 +1017,9 @@ local function SetUpChatFrame()
 		previewText:SetText("")
 		preview:Hide()
 		--Chat type
-		chatType:SetText("")
+		frames.rpkb.chatType:SetText("")
 	end)
-	editBox:SetScript("OnTextChanged", function(self, user)
+	frames.rpkb.editBox:SetScript("OnTextChanged", function(self, user)
 		if not user then return end
 		--Update preview
 		local text = wt.ClearFormatting(self:GetText())
@@ -1019,18 +1036,19 @@ local function SetUpChatFrame()
 		end
 		previewText:SetText(message)
 	end)
-	editBox:SetScript("OnEnterPressed", function(self)
-		if self:GetText() ~= "" then
+	frames.rpkb.editBox:SetScript("OnEnterPressed", function(self)
+		local text = self:GetText()
+		if text ~= "" then
 			--Send the message
 			local message = previewText:GetText():gsub("%s" .. GetChatSendSnippet(currentChatType) .. "(.*)", "%1")
 			--TODO: Add message tramission
-			print("|T" .. textures.logo .. ":8:8:0:-1|t" .. RPKBTools.AssembleMessage(message, currentChatType))
+			print(RPKBTools.AssembleMessage(message, currentChatType) .. " " .. wt.Hyperlink("item", addonNameSpace .. ":translate:" .. text, "|T" .. textures.logo .. ":0:0:0:-1|t"))
 		end
 		--Clear the input
 		self:SetText("")
 		self:ClearFocus()
 	end)
-	editBox:SetScript("OnEscapePressed", function(self)
+	frames.rpkb.editBox:SetScript("OnEscapePressed", function(self)
 		--Clear the input
 		self:SetText("")
 		self:ClearFocus()
@@ -1045,13 +1063,13 @@ local function SetUpChatFrame()
 	--[ Resizing Events ]
 
 	ChatFrame1ResizeButton:HookScript("OnMouseUp", function()
-		rpkb:SetWidth(ChatFrame1EditBox:GetWidth())
-		preview:SetWidth(rpkb:GetWidth() - 10)
+		frames.rpkb:SetWidth(ChatFrame1EditBox:GetWidth())
+		preview:SetWidth(frames.rpkb:GetWidth() - 10)
 		previewFrame:SetWidth(preview:GetWidth() - 8)
 		previewContent:SetWidth(previewFrame:GetWidth() - 20)
 		previewText:SetWidth(previewContent:GetWidth())
-		artCenter:SetWidth(rpkb:GetWidth() - 64)
-		editBox:SetWidth(rpkb:GetWidth() - 57)
+		artCenter:SetWidth(frames.rpkb:GetWidth() - 64)
+		frames.rpkb.editBox:SetWidth(frames.rpkb:GetWidth() - 57)
 	end)
 
 	local ConfirmRedockChatOnAccept = StaticPopupDialogs["CONFIRM_REDOCK_CHAT"].OnAccept
@@ -1059,21 +1077,29 @@ local function SetUpChatFrame()
 		--Call the original Blizzard function
 		ConfirmRedockChatOnAccept()
 		--Resize RPKB elements
-		rpkb:SetWidth(ChatFrame1EditBox:GetWidth())
-		preview:SetWidth(rpkb:GetWidth() - 10)
+		frames.rpkb:SetWidth(ChatFrame1EditBox:GetWidth())
+		preview:SetWidth(frames.rpkb:GetWidth() - 10)
 		previewFrame:SetWidth(preview:GetWidth() - 8)
 		previewContent:SetWidth(previewFrame:GetWidth() - 20)
 		previewText:SetWidth(previewContent:GetWidth())
-		artCenter:SetWidth(rpkb:GetWidth() - 64)
-		editBox:SetWidth(rpkb:GetWidth() - 57)
+		artCenter:SetWidth(frames.rpkb:GetWidth() - 64)
+		frames.rpkb.editBox:SetWidth(frames.rpkb:GetWidth() - 57)
 	end
+end
+
+--Set up translate frame
+local function SetUpTranslateFrame()
+	--Add hyperlink handler
+	wt.SetHyperlinkHandler(addonNameSpace, "translate", function(text)
+		print(text)
+	end)
 end
 
 --[ Loading ]
 
-function rpkb:ADDON_LOADED(name)
+function frames.rpkb:ADDON_LOADED(name)
 	if name ~= addonNameSpace then return end
-	rpkb:UnregisterEvent("ADDON_LOADED")
+	frames.rpkb:UnregisterEvent("ADDON_LOADED")
 	--Load & check the DBs
 	if LoadDBs() then
 		PrintInfo()
@@ -1085,11 +1111,13 @@ function rpkb:ADDON_LOADED(name)
 	if csc.visible == nil then csc.visible = false end
 	--Set key binding labels
 	BINDING_HEADER_RPKB = addon
+	BINDING_NAME_RPKB_OPEN = strings.keybinds.open
 	BINDING_NAME_RPKB_TOGGLE = strings.keybinds.toggle
 	--Set up the interface options
 	LoadInterfaceOptions()
-	--Set up the main frame & text
+	--Set up the frames
 	SetUpChatFrame()
+	SetUpTranslateFrame()
 	--TDODO: Remoce TEMP:
 	textures.exc = root .. "Textures/0_Exclamation.tga"
 	textures.quo = root .. "Textures/1_Quotation.tga"
@@ -1104,9 +1132,9 @@ function rpkb:ADDON_LOADED(name)
 	textures.c = root .. "Textures/10_C.tga"
 	textures.d = root .. "Textures/11_D.tga"
 end
-function rpkb:PLAYER_ENTERING_WORLD()
+function frames.rpkb:PLAYER_ENTERING_WORLD()
 	--Visibility notice
-	if not rpkb:IsVisible() then PrintStatus(true) end
+	if not frames.rpkb:IsVisible() then PrintStatus(true) end
 	--Set default key bindings
 	if cs.first then
 		cs.first = nil

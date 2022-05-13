@@ -149,6 +149,7 @@ local english = {
 		enter = "ENTER",
 	},
 	keybinds = {
+		open = "Open Chat",
 		toggle = "Toggle the Chat Window",
 	},
 	points = {
