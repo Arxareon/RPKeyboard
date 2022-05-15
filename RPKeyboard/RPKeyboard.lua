@@ -6,6 +6,25 @@ local _, addon = GetAddOnInfo(addonNameSpace)
 local wt = WidgetToolbox[ns.WidgetToolsVersion]
 
 
+--[[ ALIASES ]]
+
+---@alias ChatTypeId
+---|'"SAY"'
+---|'"EMOTE"'
+---|'"YELL"'
+---|'"PARTY"'
+---|'"GUILD"'
+---|'"OFFICER"'
+---|'"RAID"'
+---|'"RAID_WARNING"'
+---|'"INSTANCE_CHAT"'
+---|'"BATTLEGROUND"'
+---|'"WHISPER"'
+---|'"CHANNEL"'
+---|'"AFK"'
+---|'"DND"'
+
+
 --[[ ASSETS & RESOURCES ]]
 
 local root = "Interface/AddOns/" .. addonNameSpace .. "/"
@@ -16,6 +35,11 @@ strings.chat.keyword = "/rpkb"
 
 --Colors
 local colors = {
+	grey = {
+		[0] = { r = 0.54, g = 0.54, b = 0.54 },
+		[1] = { r = 0.69, g = 0.69, b = 0.69 },
+		[2] = { r = 0.79, g = 0.79, b = 0.79 },
+	},
 	red = {
 		[0] = { r = 1, g = 0.22, b = 0 },
 		[1] = { r = 1, g = 0.47, b = 0.33 },
@@ -87,9 +111,6 @@ local symbols = {
 		},
 	},
 }
-
---Global RP Keyboard table
-RPKBTools = {}
 
 
 --[[ FRAMES & EVENTS ]]
@@ -205,8 +226,8 @@ end
 
 local currentChatType = "SAY"
 
----Generate a string snippet signaling the current chat type that goes at the start in a chat input field
----@param chatType string [ChatTypeId](https://wowwiki-archive.fandom.com/wiki/ChatTypeId)
+---Generate a string snippet signaling the current chat type for selected types that goes at the start in a chat input field
+---@param chatType ChatTypeId
 ---@return string
 local function GetChatSendSnippet(chatType)
 	if chatType == "SAY" then return CHAT_SAY_SEND end
@@ -216,8 +237,8 @@ local function GetChatSendSnippet(chatType)
 	return ""
 end
 
----Generate a string snippet signaling the current chat type that goes at the start of a sent/received chat message
----@param chatType string [ChatTypeId](https://wowwiki-archive.fandom.com/wiki/ChatTypeId)
+---Generate a string snippet signaling the current chat type for selected types that goes at the start of a sent/received chat message
+---@param chatType ChatTypeId
 ---@return string
 local function GetChatGetSnippet(chatType)
 	if chatType == "SAY" then return CHAT_SAY_GET:sub(3) end
@@ -256,73 +277,63 @@ local function UpdateSets()
 
 end
 
-local function GetSymbolTexture(character)
-	--TDODO: Remoce TEMP:
-	if character == "!" then return textures.exc end
-	if character == "\"" then return textures.quo end
-	if character == "'" then return textures.apo end
-	if character == "," then return textures.com end
-	if character == "." then return textures.per end
-	if character == ":" then return textures.col end
-	if character == ";" then return textures.sem end
-	if character == "%?" then return textures.que end
-	if character:lower() == "a" then return textures.a end
-	if character:lower() == "b" then return textures.b end
-	if character:lower() == "c" then return textures.c end
-	if character:lower() == "d" then return textures.d end
-	return textures.logo
-end
-
 --[ Global Tools ]
+
+--Global RP Keyboard table
+RPKBTools = {}
 
 ---Add or update a set of symbols to the RP Keyboard table
 ---@param name string Displayed name of the symbol set
 ---@param version string The current version number of this set
----@param symbolSet table Table containing file paths of the symbol textures in alphabetical order [indexed, 0-based, #33]
---- - ***Note:*** Texture files must be in JPEG (no transparency), TGA or BLP format with powers of 2 dimensions (recommanded: 32 x 32).
---- - ***Note:*** Flat white color is preferred so the symbols may be recolored to any color.
----@param englishOnly boolean Whether or not the symbol set covers only the English alphabet [Default: true]
---- - ***Note:*** Non-English based alphabets are not currently supported.
----@param override boolean Whether to override the symbol set if one already exist with the given key [Default: false]
----@return string? key The symbol set table will be listed under this key in the RP Keyboard table [Default: nil *(on error)*]
-RPKBTools.AddSet = function(name, version, symbolSet, englishOnly, override)
-	if englishOnly ~= false then return end
-	local key = name:gsub("%s+", ""):lower()
+---@param symbolSet table Table containing file paths of the symbol textures [key, value pairs]
+--- - **Key:** To be recognized, the specific singlar character represented by the specific symbol must be used as the key.
+--- - **Value:** The value must be the path of the specific texture file of the symbol.
+--- 	- ***File format:*** Texture files must be in JPEG (no transparency, not recommended), TGA or BLP format.
+--- 	- ***Dimensions:*** Textures must have powers of 2 dimensions. RP Keyboard handles textures with 32 x 32 dimensions.
+--- 	- ***Color***: Flat white color is preferred, so the symbols may be recolored to any color within the game.
+--- 	- ***Path***: File paths are relative to the WoW directory. Use "/" as separator. Example: Interface/AddOns/RPKeyboard/Textures/Logo.tga
+---@param override? boolean Whether to override the symbol set if one already exist with the given key [Default: false]
+---@return string? symbolSetKey The symbol set table will be listed under this key in the RP Keyboard table [Default: nil *(on error)*]
+RPKBTools.AddSet = function(name, version, symbolSet, override)
+	local symbolSetKey = name:gsub("%s+", ""):lower()
 	--Check for an existing set
-	if symbolSet.key ~= nil and override ~= true then return nil end
+	if symbolSet[symbolSetKey] ~= nil and override ~= true then return nil end
 	--Validate the symbol set
 	local validatedSet = {}
-	for i = 0, 33 do
-		if not symbolSet[i] then return nil end
-		if type(symbolSet[i]) ~= "string" then return nil end
-		validatedSet[i] = symbolSet[i]
+	for key, value in pairs(symbolSet) do
+		if #key ~= 1 or not value then return nil end
+		if type(value) ~= "string" then return nil end
+		if value:match("Interface/AddOns/[^%c.<>:\"\\|%?*][^%c.<>:\"\\|%?*]-/[^%c.<>:\"\\|%?*][^%c.<>:\"\\|%?*]-%.[bBtTjJ][lLgGpP][pPaAeEgG][gG]?") ~= value then return nil end
+		validatedSet[key] = value
 	end
 	--Add the set
-	symbols.key = {
+	symbols[symbolSetKey] = {
 		name = name,
 		version = version,
 		textures = validatedSet,
 	}
 	--Update the UI
 	UpdateSets()
-	return key
+	return symbolSetKey
+end
+
+---Return a copy of symbol set subtable from the RP Keyboard table if it exists
+---@param symbolSetKey string The key referring to the symbol set subtable
+---@return table? symbolSet A copy of the symbol set subtable [Default: nil]
+RPKBTools.GetSet = function(symbolSetKey)
+	return wt.Clone(symbols[symbolSetKey])
 end
 
 ---Toggle the RP Keyboard chat window
----@param visible boolean Whether to hide or show the RP Keyboard chat window [Default: flip the current frame visibility]
----@param openChat boolean Automatically activate the chat input after the window is made visible [Default: true]
+---@param visible? boolean Whether to hide or show the RP Keyboard chat window [Default: flip the current frame visibility]
+---@param openChat? boolean Automatically activate the chat input after the window is made visible [Default: true]
 RPKBTools.Toggle = function(visible, openChat)
+	if visible == nil then visible = not csc.visible end
 	--Set visibility
-	if visible == nil then visible = not frames.rpkb:IsShown() end
 	wt.SetVisibility(frames.rpkb, visible)
 	csc.visible = visible
-	--Update the UI
-	if visible then
-		frames.toggle:SetAlpha(1)
-		if openChat ~= false then frames.rpkb.editBox:SetFocus() end
-	else
-		frames.rpkb:SetScript("OnHide", function() frames.toggle:SetAlpha(0.4) end)
-	end
+	--Open chat
+	if visible and openChat ~= false then frames.rpkb.editBox:SetFocus() end
 end
 
 --Open the RP Keyboard chat window to write a message
@@ -333,18 +344,60 @@ RPKBTools.OpenChat = function()
 	frames.rpkb.editBox:SetFocus()
 end
 
----Assemble a printable chat message text coming from the palyer that looks like a real chat message
----@param message string Text **your character** should communicate
---- - ***Note:*** When **chatType** is set to "EMOTE", **message** will be used as the custom emote text.
----@param chatType string [ChatTypeId](https://wowwiki-archive.fandom.com/wiki/ChatTypeId), the chat channel or type the message should be
----@return string
-RPKBTools.AssembleMessage = function(message, chatType)
+---Format the text to appear with the specified symbol set
+--- - ***Note:*** All escape sequences included within **text** (like text color formatting) will be removed in the process.
+---@param text string Change the recognized characters of this text to the corresponding symbols
+---@param symbolSetKey string Key referring to the symbol set sebtable within the RP Keyboard table to sample
+---@param size integer Font size to use use for the symbols [Default: 0 *(surrounding text height)*]
+---@param rgb string Font color [Format: R:G:B, Range: 0 - 255, Default: *color of the current RP Keyboard chat channel*]
+RPKBTools.ApplyFont = function(text, symbolSetKey, size, rgb)
+	text = wt.Clear(text)
+	local s = ""
+	for i = 1, #text do
+		local char = text:sub(i, i)
+		if symbols[symbolSetKey].textures[char] ~= nil then
+			--Replace with a texture
+			s = s .. "|T" .. symbols[symbolSetKey].textures[char] .. ":" .. (size or 0) .. ":" .. (size or 0) .. ":" .. "0:0:32:32:4:28:4:28:" .. (
+				rgb or (ChatTypeInfo[currentChatType].r * 255 .. ":" .. ChatTypeInfo[currentChatType].g * 255 .. ":" .. ChatTypeInfo[currentChatType].b * 255)
+			) .. "|t"
+		else
+			s = s .. char
+		end
+	end
+	return s
+end
+
+---Assemble and format printable chat message appearing a real chat message coming from the palyer
+---@param text string Text **your character** should communicate
+--- - ***Note:*** When **chatType** is set to "EMOTE", **text** will be used as the custom emote text.
+---@param chatType ChatTypeId Format the message so it appears as if sent as a message of this type
+---@return string? message [Default: nil (*on error*)]
+ RPKBTools.FormatMessage = function(text, chatType)
+	if text == "" then return nil end
 	local player = UnitName("player")
 	return wt.Color(
 		"|Hplayer:" .. player .. ":WHISPER:" .. GetRealmName():upper() .. "|h" .. (chatType == "EMOTE" and "" or "[") .. wt.Color(
 			player, C_ClassColor.GetClassColor(select(2, UnitClass("player")))
-		) .. (chatType == "EMOTE" and "" or "]") .. "|h" .. GetChatGetSnippet(chatType) .. message, ChatTypeInfo[chatType]
+		) .. (chatType == "EMOTE" and "" or "]") .. "|h" .. GetChatGetSnippet(chatType) .. text, ChatTypeInfo[chatType]
 	)
+end
+
+---Trasmit a message for other RP Keyboard users nearby in the specified chat channel
+---@param text string Contents of the message to send
+---@param chatType ChatTypeId Chat channel to send the message through
+---@param symbolSetKey? string Apply the specified symbol set as font for the text before sending the message if set [Default: nil *(no font applied)*]
+--- - ***Note:*** All escape sequences included within **text** (like text color formatting) will be removed in the process.
+---@param translator? boolean Whether to append a translate button at the end of the message [Default: **symbolSet** ~= nil]
+RPKBTools.SendMessage = function (text, chatType, symbolSetKey, translator)
+	if wt.Clear(text):trim() == "" then return end
+	local message = text
+	if symbolSetKey ~= nil then
+		message = RPKBTools.ApplyFont(text, symbolSetKey, 14)
+		if translator ~= false then message = message .. " " .. wt.Hyperlink("item", addonNameSpace .. ":translate:" .. text, "|T" .. textures.logo .. ":0|t") end
+	end
+	message = RPKBTools.FormatMessage(message, chatType)
+	print(message)
+	--TODO: Add message tramission
 end
 
 
@@ -590,7 +643,7 @@ local function CreateBackupOptions(parentFrame)
 		accept = strings.options.advanced.backup.import,
 		onAccept = function()
 			--Load from string to a temporary table
-			local success, t = pcall(loadstring("return " .. wt.ClearFormatting(options.backup.string:GetText())))
+			local success, t = pcall(loadstring("return " .. wt.Clear(options.backup.string:GetText())))
 			if success and type(t) == "table" then
 				--Run DB checkup on the loaded table
 				wt.RemoveEmpty(t.account, CheckValidity)
@@ -775,7 +828,7 @@ end
 --[ Chat Utilities ]
 
 ---Print visibility info
----@param load boolean [Default: false]
+---@param load? boolean [Default: false]
 local function PrintStatus(load)
 	if load == true and not db.statusNotice then return end
 	print(wt.Color(frames.rpkb:IsVisible() and strings.chat.status.enabled:gsub(
@@ -852,10 +905,15 @@ local function SetUpChatFrame()
 
 	--[ Main Frame ]
 
-	frames.rpkb:SetSize(ChatFrame1EditBox:GetWidth(), 32)
+	--Position & dimensions
 	frames.rpkb:SetPoint("TOPLEFT", ChatFrame1EditBox, "BOTTOMLEFT")
+	frames.rpkb:SetSize(ChatFrame1EditBox:GetWidth(), 32)
+
+	--Visibility
 	frames.rpkb:SetFrameStrata("HIGH")
 	wt.SetVisibility(frames.rpkb, csc.visible)
+
+	--Behavior
 	frames.rpkb:EnableMouse(true)
 
 	--[ Toggle ]
@@ -877,6 +935,16 @@ local function SetUpChatFrame()
 		},
 		size = { width = frames.toggle:GetWidth(), height = frames.toggle:GetHeight() },
 	})
+
+	--Linked events
+	frames.rpkb:SetScript("OnShow", function()
+		PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
+		frames.toggle:SetAlpha(1)
+	end)
+	frames.rpkb:SetScript("OnHide", function()
+		PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_OFF)
+		frames.toggle:SetAlpha(0.4)
+	end)
 
 	--[ Message Preview ]
 
@@ -1022,28 +1090,12 @@ local function SetUpChatFrame()
 	frames.rpkb.editBox:SetScript("OnTextChanged", function(self, user)
 		if not user then return end
 		--Update preview
-		local text = wt.ClearFormatting(self:GetText())
-		local message = ""
-		previewText:SetText("")
-		for i = 1, #text do
-			local char = text:sub(i, i)
-			if char:match("[!\"',%.:;A-Za-z]") then
-				--Replace with a texture
-				message = message .. "|T" .. GetSymbolTexture(char) .. ":14:14:0:-2:32:32:4:28:4:28:" .. ChatTypeInfo[currentChatType].r * 255 .. ":" .. ChatTypeInfo[currentChatType].g * 255 .. ":" .. ChatTypeInfo[currentChatType].b * 255 .. "|t"
-			else
-				message = message .. char
-			end
-		end
-		previewText:SetText(message)
+		previewText:SetText(RPKBTools.ApplyFont(self:GetText(), "test", 14))
 	end)
 	frames.rpkb.editBox:SetScript("OnEnterPressed", function(self)
-		local text = self:GetText()
-		if text ~= "" then
-			--Send the message
-			local message = previewText:GetText():gsub("%s" .. GetChatSendSnippet(currentChatType) .. "(.*)", "%1")
-			--TODO: Add message tramission
-			print(RPKBTools.AssembleMessage(message, currentChatType) .. " " .. wt.Hyperlink("item", addonNameSpace .. ":translate:" .. text, "|T" .. textures.logo .. ":0:0:0:-1|t"))
-		end
+		if IsModifierKeyDown() then return end
+		--Trasmit the message
+		RPKBTools.SendMessage(self:GetText(), currentChatType, "test")
 		--Clear the input
 		self:SetText("")
 		self:ClearFocus()
@@ -1087,11 +1139,39 @@ local function SetUpChatFrame()
 	end
 end
 
---Set up translate frame
+--Set up chat translate frame
 local function SetUpTranslateFrame()
-	--Add hyperlink handler
+
+	--[ Tooltip ]
+
+	--Frame & position
+	local tooltip = wt.CreateGameTooltip(addonNameSpace)
+	tooltip:SetPoint("BOTTOMLEFT", ChatFrame1Background, "BOTTOMRIGHT")
+
+	--Events & behavior
+	tooltip:HookScript("OnMouseUp", function() tooltip:Hide() end)
+	tooltip:HookScript("OnShow", function() PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON) end)
+	tooltip:HookScript("OnHide", function() PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_OFF) end)
+
+	--[ Hyprlink Handler ]
+
 	wt.SetHyperlinkHandler(addonNameSpace, "translate", function(text)
-		print(text)
+		--Toggle tooltip
+		if tooltip:IsVisible() then
+			tooltip:Hide()
+		else
+			wt.AddTooltip(tooltip, ChatFrame1Background, "ANCHOR_PRESERVE", "|T" .. textures.logo .. ":0|t " .. strings.translate.title, {
+				[0] = {
+					text = text,
+					font = ChatFontNormal,
+				},
+				[1] = {
+					text = "\n" .. strings.translate.close,
+					font = GameFontNormalTiny,
+					color = colors.grey[0],
+				},
+			})
+		end
 	end)
 end
 
@@ -1118,19 +1198,21 @@ function frames.rpkb:ADDON_LOADED(name)
 	--Set up the frames
 	SetUpChatFrame()
 	SetUpTranslateFrame()
-	--TDODO: Remoce TEMP:
-	textures.exc = root .. "Textures/0_Exclamation.tga"
-	textures.quo = root .. "Textures/1_Quotation.tga"
-	textures.apo = root .. "Textures/2_Apostrophe.tga"
-	textures.com = root .. "Textures/3_Comma.tga"
-	textures.per = root .. "Textures/4_Period.tga"
-	textures.col = root .. "Textures/5_Colon.tga"
-	textures.sem = root .. "Textures/6_Semicolon.tga"
-	textures.que = root .. "Textures/7_Question.tga"
-	textures.a = root .. "Textures/8_A.tga"
-	textures.b = root .. "Textures/9_B.tga"
-	textures.c = root .. "Textures/10_C.tga"
-	textures.d = root .. "Textures/11_D.tga"
+	--TDODO: Remove TEMP:
+	RPKBTools.AddSet("Test", "1", {
+		["!"] = root .. "Textures/0_Exclamation.tga",
+		["\""] = root .. "Textures/1_Quotation.tga",
+		["'"] = root .. "Textures/2_Apostrophe.tga",
+		[","] = root .. "Textures/3_Comma.tga",
+		["."] = root .. "Textures/4_Period.tga",
+		[":"] = root .. "Textures/5_Colon.tga",
+		[";"] = root .. "Textures/6_Semicolon.tga",
+		["?"] = root .. "Textures/7_Question.tga",
+		["a"] = root .. "Textures/8_A.tga",
+		["b"] = root .. "Textures/9_B.tga",
+		["c"] = root .. "Textures/10_C.tga",
+		["d"] = root .. "Textures/11_D.tga",
+	})
 end
 function frames.rpkb:PLAYER_ENTERING_WORLD()
 	--Visibility notice

@@ -143,6 +143,10 @@ local english = {
 			disabled = "#ADDON has been disabled for this character.", --# flags will be replaced with code
 		},
 	},
+	translate = {
+		title = "Translation:",
+		close = "Click to close."
+	},
 	keys = {
 		ctrl = "CTRL",
 		shift = "SHIFT",

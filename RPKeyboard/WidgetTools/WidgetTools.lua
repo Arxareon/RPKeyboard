@@ -127,6 +127,19 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	---|'"urlIndex"'
 	---|'"worldmap"'
 
+	---@alias TooltipAnchor
+	---|'"ANCHOR_TOP"'
+	---|'"ANCHOR_RIGHT"'
+	---|'"ANCHOR_BOTTOM"'
+	---|'"ANCHOR_LEFT"'
+	---|'"ANCHOR_TOPRIGHT"'
+	---|'"ANCHOR_BOTTOMRIGHT"'
+	---|'"ANCHOR_TOPLEFT"'
+	---|'"ANCHOR_BOTTOMLEFT"'
+	---|'"ANCHOR_CURSOR"'
+	---|'"ANCHOR_PRESERVE"'
+	---|'"ANCHOR_NONE"'
+
 
 	--[[ UTILITIES ]]
 
@@ -396,25 +409,27 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 		return integer .. (((decimals or 0) > 0 and (fraction ~= 0 or trim == false)) and strings.decimal .. decimalText or "")
 	end
 
-	---Remove all formatting escape sequences from a string (like **|cAARRGGBB**, **|r** pairs)
-	--- - *Grammar* escape sequences are not yet supported, and will not be removed
+	---Remove all recognized formatting, other escape sequences (like coloring) from a string
+	--- - ***Note:*** *Grammar* escape sequences are not yet supported, and will not be removed.
 	---@param s string
 	---@return string s
-	WidgetToolbox[ns.WidgetToolsVersion].ClearFormatting = function(s)
+	WidgetToolbox[ns.WidgetToolsVersion].Clear = function(s)
 		s = s:gsub(
-			"|c%x%x%x%x%x%x%x%x", ""
+			"|c%x%x%x%x%x%x%x%x(-.)|r", "%1"
 		):gsub(
-			"|r", ""
+			"|H.-|h(.-)|h", "%1"
 		):gsub(
-			"|H(.-)|h", "%1"
+			"|H.-|h", ""
 		):gsub(
-			"|T(.-)|t", "%1"
+			"|T.-|t", ""
 		):gsub(
-			"|K(.-)|k", ""
+			"|K.-|k", ""
 		):gsub(
 			"|n", "\n"
 		):gsub(
 			"||", "|"
+		):gsub(
+			"{.-}", ""
 		)
 		return s
 	end
@@ -795,7 +810,7 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	---Create and set up a new custom GameTooltip frame
 	---@param name string Unique string piece to place in the name of the the tooltip to distinguish it from other tooltips
 	---@return GameTooltip tooltip
-	local function CreateGameTooltip(name)
+	WidgetToolbox[ns.WidgetToolsVersion].CreateGameTooltip = function(name)
 		local tooltip = CreateFrame("GameTooltip", name .. "GameTooltip", nil, "GameTooltipTemplate")
 		tooltip:SetFrameStrata("DIALOG")
 		tooltip:SetScale(0.9)
@@ -808,12 +823,12 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 		return tooltip
 	end
 
-	local customTooltip = CreateGameTooltip("WidgetTools" .. ns.WidgetToolsVersion)
+	local customTooltip = WidgetToolbox[ns.WidgetToolsVersion].CreateGameTooltip("WidgetTools" .. ns.WidgetToolsVersion)
 
 	---Set up a show a GameTooltip for a frame
 	---@param tooltip? GameTooltip Reference to the tooltip widget to set up [Default: WidgetToolsGameTooltip]
 	---@param owner Frame Owner frame the tooltip to be shown for
-	---@param anchor string [GameTooltip anchor](https://wowpedia.fandom.com/wiki/API_GameTooltip_SetOwner)
+	---@param anchor TooltipAnchor [GameTooltip anchor](https://wowpedia.fandom.com/wiki/API_GameTooltip_SetOwner#Arguments)
 	---@param title string String to be shown as the tooltip title
 	---@param textLines? table Table containing text lines to be added to the tooltip [indexed, 0-based]
 	--- - **text** string ― Text to be added to the line
