@@ -1,7 +1,7 @@
 --Addon identifier name, namespace table
 local addonNameSpace, ns = ...
 
---Version
+--Version string
 ns.WidgetToolsVersion = "1.4"
 
 --Global WidgetTools table containing toolbox subtables for each respective WidgetTools version (WidgetToolbox["version_string"])
@@ -83,63 +83,6 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	---|'"Dropdown"'
 	---|'"ColorPicker"'
 
-	---@alias HyperlinkType
-	---|'"achievement"'
-	---|'"api"'
-	---|'"azessence"'
-	---|'"battlepet"'
-	---|'"battlePetAbil"'
-	---|'"calendarEvent"'
-	---|'"channel"'
-	---|'"clubFinder"'
-	---|'"clubTicket"'
-	---|'"community"'
-	---|'"conduit"'
-	---|'"currency"'
-	---|'"death"'
-	---|'"enchant"'
-	---|'"garrfollower"'
-	---|'"garrfollowerability"'
-	---|'"garrmission"'
-	---|'"instancelock"'
-	---|'"item"'
-	---|'"journal"'
-	---|'"keystone"'
-	---|'"levelup"'
-	---|'"lootHistory"'
-	---|'"outfit"'
-	---|'"player"'
-	---|'"playerCommunity"'
-	---|'"BNplayer"'
-	---|'"BNplayerCommunity"'
-	---|'"quest"'
-	---|'"shareachieve"'
-	---|'"shareitem"'
-	---|'"sharess"'
-	---|'"spell"'
-	---|'"storecategory"'
-	---|'"talent"'
-	---|'"trade"'
-	---|'"transmogappearance"'
-	---|'"transmogillusion"'
-	---|'"transmogset"'
-	---|'"unit"'
-	---|'"urlIndex"'
-	---|'"worldmap"'
-
-	---@alias TooltipAnchor
-	---|'"ANCHOR_TOP"'
-	---|'"ANCHOR_RIGHT"'
-	---|'"ANCHOR_BOTTOM"'
-	---|'"ANCHOR_LEFT"'
-	---|'"ANCHOR_TOPRIGHT"'
-	---|'"ANCHOR_BOTTOMRIGHT"'
-	---|'"ANCHOR_TOPLEFT"'
-	---|'"ANCHOR_BOTTOMLEFT"'
-	---|'"ANCHOR_CURSOR"'
-	---|'"ANCHOR_PRESERVE"'
-	---|'"ANCHOR_NONE"'
-
 
 	--[[ UTILITIES ]]
 
@@ -168,26 +111,30 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	---@param blockrule? function Function to manually filter which keys get printed and explored further
 	--- - @*param* **key** number | string ― The currently dumped key
 	--- - @*return* boolean ― Skip the key if the returned value is true
-	--- - ***Example:** comparison* ― Skip the key based the result of a comparison between it (if it's an index) and a specified number value
-	--- 	- --[[____]] function(key)
-	--- 	- --[[________]] if type(key) == "number" then --check if the key is an index to avoid issues with mixed tables
-	--- 	- --[[____________]] return key < 10
-	--- 	- --[[________]] end
-	--- 	- --[[________]] return true --or false whether to allow string keys in mixed tables
-	--- 	- --[[____]] end
-	--- - ***Example:** blocklist* ― Iterate through an array (indexed table) containing keys, the values of which are to be skipped
-	--- 	- --[[____]] function(key)
-	--- 	- --[[________]] local blocklist = {
-	--- 	- --[[____________]] [0] = "skip_key",
-	--- 	- --[[____________]] [1] = 1,
-	--- 	- --[[________]] }
-	--- 	- --[[________]] for i = 0, #blocklist do
-	--- 	- --[[____________]] if key == blocklist[i] then
-	--- 	- --[[________________]] return true --or false to invert the functionality and treat the blocklist as an allowlist
-	--- 	- --[[____________]] end
-	--- 	- --[[________]] end
-	--- 	- --[[________]] return false --or true to invert the functionality and treat the blocklist as an allowlist
-	--- 	- --[[____]] end
+	--- - ***Example - Comparison:*** Skip the key based the result of a comparison between it (if it's an index) and a specified number value
+	--- 	```
+	--- 	function(key)
+	--- 		if type(key) == "number" then --check if the key is an index to avoid issues with mixed tables
+	--- 			return key < 10
+	--- 		end
+	--- 			return true --or false whether to allow string keys in mixed tables
+	--- 	end
+	--- 	```
+	--- - ***Example - Blocklist:*** Iterate through an array (indexed table) containing keys, the values of which are to be skipped
+	--- 	```
+	--- 	function(key)
+	--- 		local blocklist = {
+	--- 			[0] = "skip_key",
+	--- 			[1] = 1,
+	--- 		}
+	--- 		for i = 0, #blocklist do
+	--- 			if key == blocklist[i] then
+	--- 				return true --or false to invert the functionality and treat the blocklist as an allowlist
+	--- 			end
+	--- 		end
+	--- 			return false --or true to invert the functionality and treat the blocklist as an allowlist
+	--- 	end
+	--- 	```
 	---@param currentKey? string
 	---@param currentLevel? number
 	WidgetToolbox[ns.WidgetToolsVersion].Dump = function(object, name, depth, blockrule, currentKey, currentLevel)
@@ -378,10 +325,10 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	---Add coloring escape sequences to a string
 	---@param text string Text to add coloring to
 	---@param color table Table containing the color values
-	--- - **r** number ― Red [Range: 0 - 1]
-	--- - **g** number ― Green [Range: 0 - 1]
-	--- - **b** number ― Blue [Range: 0 - 1]
-	--- - **a**? number *optional* ― Opacity [Range: 0 - 1, Default: 1]
+	--- - **r** number ― Red [Range: 0, 1]
+	--- - **g** number ― Green [Range: 0, 1]
+	--- - **b** number ― Blue [Range: 0, 1]
+	--- - **a**? number *optional* ― Opacity [Range: 0, 1; Default: 1]
 	---@return string
 	WidgetToolbox[ns.WidgetToolsVersion].Color = function(text, color)
 		local r, g, b, a = WidgetToolbox[ns.WidgetToolsVersion].UnpackColor(color)
@@ -437,10 +384,10 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--[ Convert color table <-> RGB(A) values ]
 
 	---Return a table constructed from color values
-	---@param red number [Range: 0 - 1]
-	---@param green number [Range: 0 - 1]
-	---@param blue number [Range: 0 - 1]
-	---@param alpha? number Opacity [Range: 0 - 1, Default: 1]
+	---@param red number [Range: 0, 1]
+	---@param green number [Range: 0, 1]
+	---@param blue number [Range: 0, 1]
+	---@param alpha? number Opacity [Range: 0, 1; Default: 1]
 	---@return number table
 	WidgetToolbox[ns.WidgetToolsVersion].PackColor = function(red, green, blue, alpha)
 		 return { r = red, g = green, b = blue, a = alpha or 1 }
@@ -448,10 +395,10 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 
 	---Return the color values found in a table
 	---@param table table Table containing the color values
-	--- - **r** number ― Red [Range: 0 - 1]
-	--- - **g** number ― Green [Range: 0 - 1]
-	--- - **b** number ― Blue [Range: 0 - 1]
-	--- - **a**? number *optional* ― Opacity [Range: 0 - 1, Default: 1]
+	--- - **r** number ― Red [Range: 0, 1]
+	--- - **g** number ― Green [Range: 0, 1]
+	--- - **b** number ― Blue [Range: 0, 1]
+	--- - **a**? number *optional* ― Opacity [Range: 0, 1; Default: 1]
 	---@param alpha? boolean Specify whether to return the full RGBA set or just the RGB values [Default: true]
 	---@return number r
 	---@return number g
@@ -468,11 +415,11 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 
 	--[ Convert HEX <-> RGB(A) values ]
 
-	---Convert RGB(A) color values [Range: 0 - 1] to HEX color code
-	---@param r number Red [Range: 0 - 1]
-	---@param g number Green [Range: 0 - 1]
-	---@param b number Blue [Range: 0 - 1]
-	---@param a? number Alpha [Range: 0 - 1, Default: *no alpha*]
+	---Convert RGB(A) color values [Range: 0, 1] to HEX color code
+	---@param r number Red [Range: 0, 1]
+	---@param g number Green [Range: 0, 1]
+	---@param b number Blue [Range: 0, 1]
+	---@param a? number Alpha [Range: 0, 1; Default: *no alpha*]
 	---@param alphaFirst? boolean Put the alpha value first: ARGB output instead of RGBA [Default: false]
 	---@param hashtag? boolean Whether to add a "#" to the beginning of the color description [Default: true]
 	---@return string hex Color code in HEX format (Examples: RGB - "#2266BB", RGBA - "#2266BBAA")
@@ -484,12 +431,12 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 		return hex:upper()
 	end
 
-	---Convert a HEX color code into RGB or RGBA [Range: 0 - 1]
+	---Convert a HEX color code into RGB or RGBA [Range: 0, 1]
 	---@param hex string String in HEX color code format (Examples: RGB - "#2266BB", RGBA - "#2266BBAA" where the "#" is optional)
-	---@return number r Red value [Range: 0 - 1]
-	---@return number g Green value [Range: 0 - 1]
-	---@return number b Blue value [Range: 0 - 1]
-	---@return number? a Alpha value [Range: 0 - 1]
+	---@return number r Red value [Range: 0, 1]
+	---@return number g Green value [Range: 0, 1]
+	---@return number b Blue value [Range: 0, 1]
+	---@return number? a Alpha value [Range: 0, 1]
 	WidgetToolbox[ns.WidgetToolsVersion].HexToColor = function(hex)
 		hex = hex:gsub("#", "")
 		if hex:len() ~= 6 and hex:len() ~= 8 then return nil end
@@ -834,9 +781,9 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- - **text** string ― Text to be added to the line
 	--- - **font**? string | FontObject *optional* ― The FontObject to set for this line [Default: GameTooltipTextSmall]
 	--- - **color**? table *optional* ― Table containing the RGB values to color this line with [Default: HIGHLIGHT_FONT_COLOR (white)]
-	--- 	- **r** number ― Red [Range: 0 - 1]
-	--- 	- **g** number ― Green [Range: 0 - 1]
-	--- 	- **b** number ― Blue [Range: 0 - 1]
+	--- 	- **r** number ― Red [Range: 0, 1]
+	--- 	- **g** number ― Green [Range: 0, 1]
+	--- 	- **b** number ― Blue [Range: 0, 1]
 	--- - **wrap**? boolean *optional* ― Allow this line to be wrapped [Default: true]
 	---@param offsetX? number [Default: 0]
 	---@param offsetY? number [Default: 0]
@@ -978,10 +925,10 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 	- **size** number
 	--- 	- **flags** string ― Outline, coloring (comma separated string of one or more of): "OUTLINE" | "THICKOUTLINE" | "THINOUTLINE" | "MONOCHROME" ..
 	--- - **color**? table *optional* — Apply the specified color to the text
-	--- 	- **r** number ― Red [Range: 0 - 1]
-	--- 	- **g** number ― Green [Range: 0 - 1]
-	--- 	- **b** number ― Blue [Range: 0 - 1]
-	--- 	- **a** number ― Opacity [Range: 0 - 1]
+	--- 	- **r** number ― Red [Range: 0, 1]
+	--- 	- **g** number ― Green [Range: 0, 1]
+	--- 	- **b** number ― Blue [Range: 0, 1]
+	--- 	- **a** number ― Opacity [Range: 0, 1]
 	--- - **text** string ― Text to be shown
 	---@return FontString text
 	WidgetToolbox[ns.WidgetToolsVersion].CreateText = function(t)
@@ -1012,10 +959,10 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 	- **width**? number *optional* [Default: *width of the parent frame*]
 	--- 	- **justify**? table *optional* — Set the horizontal justification of the text: "LEFT" | "RIGHT" | "CENTER" [Default: "LEFT"]
 	--- 	- **color**? table *optional* — Apply the specified color to the title
-	--- 		- **r** number ― Red [Range: 0 - 1]
-	--- 		- **g** number ― Green [Range: 0 - 1]
-	--- 		- **b** number ― Blue [Range: 0 - 1]
-	--- 		- **a** number ― Opacity [Range: 0 - 1]
+	--- 		- **r** number ― Red [Range: 0, 1]
+	--- 		- **g** number ― Green [Range: 0, 1]
+	--- 		- **b** number ― Blue [Range: 0, 1]
+	--- 		- **a** number ― Opacity [Range: 0, 1]
 	--- - **description**? table *optional*
 	--- 	- **text** string ― Text to be shown as the description of the frame
 	--- 	- **template**? string *optional* ― Template to be used for the [FontString](https://wowpedia.fandom.com/wiki/UIOBJECT_FontString) [Default: "GameFontNormal"]
@@ -1025,10 +972,10 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 	- **width**? number *optional* [Default: *width of the parent frame*]
 	--- 	- **justify**? table *optional* — Set the horizontal justification of the text: "LEFT" | "RIGHT" | "CENTER" [Default: "LEFT"]
 	--- 	- **color**? table *optional* — Apply the specified color to the description
-	--- 		- **r** number ― Red [Range: 0 - 1]
-	--- 		- **g** number ― Green [Range: 0 - 1]
-	--- 		- **b** number ― Blue [Range: 0 - 1]
-	--- 		- **a** number ― Opacity [Range: 0 - 1]
+	--- 		- **r** number ― Red [Range: 0, 1]
+	--- 		- **g** number ― Green [Range: 0, 1]
+	--- 		- **b** number ― Blue [Range: 0, 1]
+	--- 		- **a** number ― Opacity [Range: 0, 1]
 	---@return FontString title
 	---@return FontString? description
 	WidgetToolbox[ns.WidgetToolsVersion].AddTitle = function(t)
@@ -1240,7 +1187,6 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- - **optionsTable**? table ― Reference to the table where all options data should be stored in [Default: **WidgetToolbox[ns.WidgetToolsVersion].OptionsData** *(the data of all addons is stored collectively)*]
 	---@return Frame optionsPanel
 	---@return Frame? scrollChild
-	---@return Frame? scrollFrame
 	WidgetToolbox[ns.WidgetToolsVersion].CreateOptionsPanel = function(t)
 		local optionsPanel = CreateFrame("Frame", (t.name or t.title:gsub("%s+", "")) .. "Options", InterfaceOptionsFramePanelContainer)
 		--Position, dimensions & visibility
@@ -1307,10 +1253,10 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	---@param optionsPanel Frame Reference to the options category panel frame
 	---@param scrollHeight number Set the height of the scrollable child frame to the specified value
 	---@param scrollSpeed? number Set the scroll rate to the specified value [Default: *half of the height of the scroll bar*]
-	---@return Frame scrollFrame
+	---@return Frame scrollChild The scrollable child frame of the ScrollFrame
 	WidgetToolbox[ns.WidgetToolsVersion].AddOptionsPanelScrollFrame = function(optionsPanel, scrollHeight, scrollSpeed)
 		--Create the ScrollFrame
-		local scrollFrame = WidgetToolbox[ns.WidgetToolsVersion].CreateScrollFrame({
+		local scrollChild = WidgetToolbox[ns.WidgetToolsVersion].CreateScrollFrame({
 			parent = optionsPanel,
 			position = {
 				anchor = "TOPLEFT",
@@ -1321,16 +1267,16 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 			scrollSpeed = scrollSpeed
 		})
 		--Reparent, reposition and resize default elements
-		_G[optionsPanel:GetName() .. "Title"]:SetParent(scrollFrame)
-		_G[optionsPanel:GetName() .. "Description"]:SetParent(scrollFrame)
+		_G[optionsPanel:GetName() .. "Title"]:SetParent(scrollChild)
+		_G[optionsPanel:GetName() .. "Description"]:SetParent(scrollChild)
 		WidgetToolbox[ns.WidgetToolsVersion].PositionFrame(_G[optionsPanel:GetName() .. "Title"], "TOPLEFT", nil, nil, 16, -12)
 		_G[optionsPanel:GetName() .. "Title"]:SetWidth(_G[optionsPanel:GetName() .. "Title"]:GetWidth() - 20)
 		_G[optionsPanel:GetName() .. "Description"]:SetWidth(_G[optionsPanel:GetName() .. "Description"]:GetWidth() - 20)
 		if _G[optionsPanel:GetName() .. "Icon"] ~= nil then
-			_G[optionsPanel:GetName() .. "Icon"]:SetParent(scrollFrame)
+			_G[optionsPanel:GetName() .. "Icon"]:SetParent(scrollChild)
 			WidgetToolbox[ns.WidgetToolsVersion].PositionFrame(_G[optionsPanel:GetName() .. "Icon"], "TOPRIGHT", nil, nil, -16, -12)
 		end
-		return scrollFrame
+		return scrollChild
 	end
 
 
@@ -1355,9 +1301,9 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 	- **text** string ― Text to be added to the line
 	--- 	- **font**? string | FontObject *optional* ― The FontObject to set for this line [Default: GameTooltipTextSmall]
 	--- 	- **color**? table *optional* ― Table containing the RGB values to color this line with [Default: HIGHLIGHT_FONT_COLOR (white)]
-	--- 		- **r** number ― Red [Range: 0 - 1]
-	--- 		- **g** number ― Green [Range: 0 - 1]
-	--- 		- **b** number ― Blue [Range: 0 - 1]
+	--- 		- **r** number ― Red [Range: 0, 1]
+	--- 		- **g** number ― Green [Range: 0, 1]
+	--- 		- **b** number ― Blue [Range: 0, 1]
 	--- 	- **wrap**? boolean *optional* ― Allow this line to be wrapped [Default: true]
 	--- - **onClick** function — The function to be called when an [OnClick](https://wowpedia.fandom.com/wiki/UIHANDLER_OnClick) event happens
 	--- - **onEvent**? table [indexed, 0-based] *optional* — Table that holds additional event handler scripts to be set for the button
@@ -1420,9 +1366,9 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 	- **text** string ― Text to be added to the line
 	--- 	- **font**? string | FontObject *optional* ― The FontObject to set for this line [Default: GameTooltipTextSmall]
 	--- 	- **color**? table *optional* ― Table containing the RGB values to color this line with [Default: HIGHLIGHT_FONT_COLOR (white)]
-	--- 		- **r** number ― Red [Range: 0 - 1]
-	--- 		- **g** number ― Green [Range: 0 - 1]
-	--- 		- **b** number ― Blue [Range: 0 - 1]
+	--- 		- **r** number ― Red [Range: 0, 1]
+	--- 		- **g** number ― Green [Range: 0, 1]
+	--- 		- **b** number ― Blue [Range: 0, 1]
 	--- 	- **wrap**? boolean *optional* ― Allow this line to be wrapped [Default: true]
 	--- - **onClick**? function *optional* — The function to be called when an [OnClick](https://wowpedia.fandom.com/wiki/UIHANDLER_OnClick) event happens
 	--- - **onEvent**? table [indexed, 0-based] *optional* — Table that holds additional event handler scripts to be set for the checkbox
@@ -1519,9 +1465,9 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 	- **text** string ― Text to be added to the line
 	--- 	- **font**? string | FontObject *optional* ― The FontObject to set for this line [Default: GameTooltipTextSmall]
 	--- 	- **color**? table *optional* ― Table containing the RGB values to color this line with [Default: HIGHLIGHT_FONT_COLOR (white)]
-	--- 		- **r** number ― Red [Range: 0 - 1]
-	--- 		- **g** number ― Green [Range: 0 - 1]
-	--- 		- **b** number ― Blue [Range: 0 - 1]
+	--- 		- **r** number ― Red [Range: 0, 1]
+	--- 		- **g** number ― Green [Range: 0, 1]
+	--- 		- **b** number ― Blue [Range: 0, 1]
 	--- 	- **wrap**? boolean *optional* ― Allow this line to be wrapped [Default: true]
 	--- - **onClick**? function *optional* — The function to be called when an [OnClick](https://wowpedia.fandom.com/wiki/UIHANDLER_OnClick) event happens
 	--- - **onEvent**? table [indexed, 0-based] *optional* — Table that holds additional event handler scripts to be set for the radio button
@@ -1629,9 +1575,9 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 		- **text** string ― Text to be added to the line
 	--- 		- **font**? string | FontObject *optional* ― The FontObject to set for this line [Default: GameTooltipTextSmall]
 	--- 		- **color**? table *optional* ― Table containing the RGB values to color this line with [Default: HIGHLIGHT_FONT_COLOR (white)]
-	--- 			- **r** number ― Red [Range: 0 - 1]
-	--- 			- **g** number ― Green [Range: 0 - 1]
-	--- 			- **b** number ― Blue [Range: 0 - 1]
+	--- 			- **r** number ― Red [Range: 0, 1]
+	--- 			- **g** number ― Green [Range: 0, 1]
+	--- 			- **b** number ― Blue [Range: 0, 1]
 	--- 		- **wrap**? boolean *optional* ― Allow this line to be wrapped [Default: true]
 	--- 	- **onSelect**? function *optional* — The function to be called when the radio button is clicked and the item is selected
 	--- - **labels**? boolean *optional* — Whether or not to add the labels to the right of each newly created radio button [Default: true]
@@ -1765,10 +1711,10 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- - **maxLetters**? number *optional* — The value to set by [EditBox:SetMaxLetters()](https://wowpedia.fandom.com/wiki/API_EditBox_SetMaxLetters) [Default: 0 (*no limit*)]
 	--- - **fontObject**? FontString *optional*— Font template object to use [Default: *default font template based on the frame template*]
 	--- - **color**? table *optional* — Apply the specified color to all text in the editbox
-	--- 	- **r** number ― Red [Range: 0 - 1]
-	--- 	- **g** number ― Green [Range: 0 - 1]
-	--- 	- **b** number ― Blue [Range: 0 - 1]
-	--- 	- **a** number ― Opacity [Range: 0 - 1]
+	--- 	- **r** number ― Red [Range: 0, 1]
+	--- 	- **g** number ― Green [Range: 0, 1]
+	--- 	- **b** number ― Blue [Range: 0, 1]
+	--- 	- **a** number ― Opacity [Range: 0, 1]
 	--- - **text**? string *optional* — Text to be shown inside editbox, loaded whenever the text box is shown
 	--- - **title**? FontString *optional* — The title above the editbox [Default: nil *(no title)*]
 	--- - **readOnly**? boolean *optional* — The text will be uneditable if true [Default: false]
@@ -1863,10 +1809,10 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- - **maxLetters**? number *optional* — The value to set by [EditBox:SetMaxLetters()](https://wowpedia.fandom.com/wiki/API_EditBox_SetMaxLetters) [Default: 0 (*no limit*])
 	--- - **fontObject**? FontString *optional*— Font template object to use [Default: *default font template based on the frame template*]
 	--- - **color**? table *optional* — Apply the specified color to all text in the editbox
-	--- 	- **r** number ― Red [Range: 0 - 1]
-	--- 	- **g** number ― Green [Range: 0 - 1]
-	--- 	- **b** number ― Blue [Range: 0 - 1]
-	--- 	- **a** number ― Opacity [Range: 0 - 1]
+	--- 	- **r** number ― Red [Range: 0, 1]
+	--- 	- **g** number ― Green [Range: 0, 1]
+	--- 	- **b** number ― Blue [Range: 0, 1]
+	--- 	- **a** number ― Opacity [Range: 0, 1]
 	--- - **text**? string *optional* — Text to be shown inside editbox, loaded whenever the text box is shown
 	--- - **label** string — Name of the editbox to be shown as the tooltip title and optionally as the title text
 	--- - **title**? boolean *optional* — Whether or not to add the title above the editbox [Default: true]
@@ -1874,9 +1820,9 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 	- **text** string ― Text to be added to the line
 	--- 	- **font**? string | FontObject *optional* ― The FontObject to set for this line [Default: GameTooltipTextSmall]
 	--- 	- **color**? table *optional* ― Table containing the RGB values to color this line with [Default: HIGHLIGHT_FONT_COLOR (white)]
-	--- 		- **r** number ― Red [Range: 0 - 1]
-	--- 		- **g** number ― Green [Range: 0 - 1]
-	--- 		- **b** number ― Blue [Range: 0 - 1]
+	--- 		- **r** number ― Red [Range: 0, 1]
+	--- 		- **g** number ― Green [Range: 0, 1]
+	--- 		- **b** number ― Blue [Range: 0, 1]
 	--- 	- **wrap**? boolean *optional* ― Allow this line to be wrapped [Default: true]
 	--- - **readOnly**? boolean *optional* — The text will be uneditable if true [Default: false]
 	--- - **onChar**? function *optional* — The function to be called when a character is entered. Can be used for excluding characters via pattern matching.
@@ -1982,10 +1928,10 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- - **charCount**? boolean — Show or hide the remaining number of characters [Default: (**t.maxLetters** or 0) > 0]
 	--- - **fontObject**? FontString *optional*— Font template object to use [Default: *default font template based on the frame template*]
 	--- - **color**? table *optional* — Apply the specified color to all text in the editbox
-	--- 	- **r** number ― Red [Range: 0 - 1]
-	--- 	- **g** number ― Green [Range: 0 - 1]
-	--- 	- **b** number ― Blue [Range: 0 - 1]
-	--- 	- **a** number ― Opacity [Range: 0 - 1]
+	--- 	- **r** number ― Red [Range: 0, 1]
+	--- 	- **g** number ― Green [Range: 0, 1]
+	--- 	- **b** number ― Blue [Range: 0, 1]
+	--- 	- **a** number ― Opacity [Range: 0, 1]
 	--- - **text**? string *optional* — Text to be shown inside editbox, loaded whenever the text box is shown
 	--- - **label** string — Name of the editbox to be shown as the tooltip title and optionally as the title text
 	--- - **title**? boolean *optional* — Whether or not to add the title above the editbox [Default: true]
@@ -1993,9 +1939,9 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 	- **text** string ― Text to be added to the line
 	--- 	- **font**? string | FontObject *optional* ― The FontObject to set for this line [Default: GameTooltipTextSmall]
 	--- 	- **color**? table *optional* ― Table containing the RGB values to color this line with [Default: HIGHLIGHT_FONT_COLOR (white)]
-	--- 		- **r** number ― Red [Range: 0 - 1]
-	--- 		- **g** number ― Green [Range: 0 - 1]
-	--- 		- **b** number ― Blue [Range: 0 - 1]
+	--- 		- **r** number ― Red [Range: 0, 1]
+	--- 		- **g** number ― Green [Range: 0, 1]
+	--- 		- **b** number ― Blue [Range: 0, 1]
 	--- 	- **wrap**? boolean *optional* ― Allow this line to be wrapped [Default: true]
 	--- - **scrollSpeed**? number *optional* — Scroll step value [Default: *half of the height of the scroll bar*]
 	--- - **scrollToTop**? boolean *optional* — Automatically scroll to the top when the text is loaded or changed while not being actively edited [Default: true]
@@ -2128,19 +2074,19 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- - **layer**? Layer *optional* ― Draw [Layer](https://wowpedia.fandom.com/wiki/Layer)
 	--- - **template**? string *optional* ― Template to be used for the [FontString](https://wowpedia.fandom.com/wiki/UIOBJECT_FontString) [Default: "GameFontNormal"]
 	--- - **color**? table *optional* — Apply the specified color to the text
-	--- 	- **r** number ― Red [Range: 0 - 1]
-	--- 	- **g** number ― Green [Range: 0 - 1]
-	--- 	- **b** number ― Blue [Range: 0 - 1]
-	--- 	- **a** number ― Opacity [Range: 0 - 1]
+	--- 	- **r** number ― Red [Range: 0, 1]
+	--- 	- **g** number ― Green [Range: 0, 1]
+	--- 	- **b** number ― Blue [Range: 0, 1]
+	--- 	- **a** number ― Opacity [Range: 0, 1]
 	--- - **text** string ― The copyable text to be shown
 	--- - **label** string — Title text to be shown above the copybox
 	--- - **title**? boolean *optional* — Whether or not to add the title above the copybox [Default: true]
 	--- - **flipOnMouse**? boolean *optional* — Hide/Reveal the editbox on mouseover instead of after a click [Default: false]
 	--- - **colorOnMouse**? table *optional* — If set, change the color of the text on mouseover to the specified color (if **t.flipOnMouse** is false) [Default: *no color change*]
-	--- 	- **r** number ― Red [Range: 0 - 1]
-	--- 	- **g** number ― Green [Range: 0 - 1]
-	--- 	- **b** number ― Blue [Range: 0 - 1]
-	--- 	- **a** number ― Opacity [Range: 0 - 1]
+	--- 	- **r** number ― Red [Range: 0, 1]
+	--- 	- **g** number ― Green [Range: 0, 1]
+	--- 	- **b** number ― Blue [Range: 0, 1]
+	--- 	- **a** number ― Opacity [Range: 0, 1]
 	---@return FontString textLine
 	---@return EditBox copyBox
 	WidgetToolbox[ns.WidgetToolsVersion].CreateCopyBox = function(t)
@@ -2314,9 +2260,9 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 	- **text** string ― Text to be added to the line
 	--- 	- **font**? string | FontObject *optional* ― The FontObject to set for this line [Default: GameTooltipTextSmall]
 	--- 	- **color**? table *optional* ― Table containing the RGB values to color this line with [Default: HIGHLIGHT_FONT_COLOR (white)]
-	--- 		- **r** number ― Red [Range: 0 - 1]
-	--- 		- **g** number ― Green [Range: 0 - 1]
-	--- 		- **b** number ― Blue [Range: 0 - 1]
+	--- 		- **r** number ― Red [Range: 0, 1]
+	--- 		- **g** number ― Green [Range: 0, 1]
+	--- 		- **b** number ― Blue [Range: 0, 1]
 	--- 	- **wrap**? boolean *optional* ― Allow this line to be wrapped [Default: true]
 	--- - **value** table
 	--- 	- **min** number — Lower numeric value limit
@@ -2444,9 +2390,9 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 	- **text** string ― Text to be added to the line
 	--- 	- **font**? string | FontObject *optional* ― The FontObject to set for this line [Default: GameTooltipTextSmall]
 	--- 	- **color**? table *optional* ― Table containing the RGB values to color this line with [Default: HIGHLIGHT_FONT_COLOR (white)]
-	--- 		- **r** number ― Red [Range: 0 - 1]
-	--- 		- **g** number ― Green [Range: 0 - 1]
-	--- 		- **b** number ― Blue [Range: 0 - 1]
+	--- 		- **r** number ― Red [Range: 0, 1]
+	--- 		- **g** number ― Green [Range: 0, 1]
+	--- 		- **b** number ― Blue [Range: 0, 1]
 	--- 	- **wrap**? boolean *optional* ― Allow this line to be wrapped [Default: true]
 	--- - **items** table [indexed, 0-based] — Table containing the dropdown items described within subtables
 	--- 	- **text** string — Text to represent the items within the dropdown frame
@@ -2584,20 +2530,20 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	---Using **colorPickerData** table, it must be set before call:
 	--- - **activeColorPicker** Button
 	--- - **startColors** table ― Color values are to be provided in this table
-	--- 	- **r** number ― Red [Range: 0 - 1]
-	--- 	- **g** number ― Green [Range: 0 - 1]
-	--- 	- **b** number ― Blue [Range: 0 - 1]
-	--- 	- **a**? number *optional* ― Opacity [Range: 0 - 1, Default: 1]
+	--- 	- **r** number ― Red [Range: 0, 1]
+	--- 	- **g** number ― Green [Range: 0, 1]
+	--- 	- **b** number ― Blue [Range: 0, 1]
+	--- 	- **a**? number *optional* ― Opacity [Range: 0, 1; Default: 1]
 	--- - **onColorUpdate** function
-	--- 	- @*param* **r** number ― Red [Range: 0 - 1]
-	--- 	- @*param* **g** number ― Green [Range: 0 - 1]
-	--- 	- @*param* **b** number ― Blue [Range: 0 - 1]
-	--- 	- @*param* **a**? number *optional* ― Opacity [Range: 0 - 1, Default: 1]
+	--- 	- @*param* **r** number ― Red [Range: 0, 1]
+	--- 	- @*param* **g** number ― Green [Range: 0, 1]
+	--- 	- @*param* **b** number ― Blue [Range: 0, 1]
+	--- 	- @*param* **a**? number *optional* ― Opacity [Range: 0, 1; Default: 1]
 	--- - **onCancel** function
-	--- 	- @*param* **r** number ― Red [Range: 0 - 1]
-	--- 	- @*param* **g** number ― Green [Range: 0 - 1]
-	--- 	- @*param* **b** number ― Blue [Range: 0 - 1]
-	--- 	- @*param* **a**? number *optional* ― Opacity [Range: 0 - 1, Default: 1]
+	--- 	- @*param* **r** number ― Red [Range: 0, 1]
+	--- 	- @*param* **g** number ― Green [Range: 0, 1]
+	--- 	- @*param* **b** number ― Blue [Range: 0, 1]
+	--- 	- @*param* **a**? number *optional* ― Opacity [Range: 0, 1; Default: 1]
 	local function OpenColorPicker()
 		--Color picker button background update function
 		local function ColorUpdate()
@@ -2641,20 +2587,20 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	---@param colorPicker Frame — The frame to set as the parent of the new color picker button
 	---@param t table Parameters are to be provided in this table
 	--- - **setColors** function — The function to be called to set the colors of the color picker on load or update
-	--- 	- @*return* **r** number ― Red [Range: 0 - 1]
-	--- 	- @*return* **g** number ― Green [Range: 0 - 1]
-	--- 	- @*return* **b** number ― Blue [Range: 0 - 1]
-	--- 	- @*return* **a**? number *optional* ― Opacity [Range: 0 - 1]
+	--- 	- @*return* **r** number ― Red [Range: 0, 1]
+	--- 	- @*return* **g** number ― Green [Range: 0, 1]
+	--- 	- @*return* **b** number ― Blue [Range: 0, 1]
+	--- 	- @*return* **a**? number *optional* ― Opacity [Range: 0, 1]
 	--- - **onColorUpdate** function — The function to be called when the color is changed
-	--- 	- @*param* **r** number ― Red [Range: 0 - 1]
-	--- 	- @*param* **g** number ― Green [Range: 0 - 1]
-	--- 	- @*param* **b** number ― Blue [Range: 0 - 1]
-	--- 	- @*param* **a**? number *optional* ― Opacity [Range: 0 - 1, Default: 1]
+	--- 	- @*param* **r** number ― Red [Range: 0, 1]
+	--- 	- @*param* **g** number ― Green [Range: 0, 1]
+	--- 	- @*param* **b** number ― Blue [Range: 0, 1]
+	--- 	- @*param* **a**? number *optional* ― Opacity [Range: 0, 1; Default: 1]
 	--- - **onCancel** function — The function to be called when the color change is cancelled
-	--- 	- @*param* **r** number ― Red [Range: 0 - 1]
-	--- 	- @*param* **g** number ― Green [Range: 0 - 1]
-	--- 	- @*param* **b** number ― Blue [Range: 0 - 1]
-	--- 	- @*param* **a**? number *optional* ― Opacity [Range: 0 - 1, Default: 1]
+	--- 	- @*param* **r** number ― Red [Range: 0, 1]
+	--- 	- @*param* **g** number ― Green [Range: 0, 1]
+	--- 	- @*param* **b** number ― Blue [Range: 0, 1]
+	--- 	- @*param* **a**? number *optional* ― Opacity [Range: 0, 1; Default: 1]
 	---@return Button pickerButton The color picker button frame
 	---@return Texture backgroundGradient The gradient color background texture
 	local function AddColorPickerButton(colorPicker, t)
@@ -2737,20 +2683,20 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- - **label** string — Title text to be shown above the color picker button and HEX input box
 	--- - **title**? boolean *optional* — Whether or not to add the title above the color picker [Default: true]
 	--- - **setColors** function — The function to be called to set the colors of the color picker on load or update
-	--- 	- @*return* **r** number ― Red [Range: 0 - 1]
-	--- 	- @*return* **g** number ― Green [Range: 0 - 1]
-	--- 	- @*return* **b** number ― Blue [Range: 0 - 1]
-	--- 	- @*return* **a**? number *optional* ― Opacity [Range: 0 - 1, Default: 1]
+	--- 	- @*return* **r** number ― Red [Range: 0, 1]
+	--- 	- @*return* **g** number ― Green [Range: 0, 1]
+	--- 	- @*return* **b** number ― Blue [Range: 0, 1]
+	--- 	- @*return* **a**? number *optional* ― Opacity [Range: 0, 1; Default: 1]
 	--- - **onColorUpdate** function — The function to be called when the color is changed
-	--- 	- @*param* **r** number ― Red [Range: 0 - 1]
-	--- 	- @*param* **g** number ― Green [Range: 0 - 1]
-	--- 	- @*param* **b** number ― Blue [Range: 0 - 1]
-	--- 	- @*param* **a**? number *optional* ― Opacity [Range: 0 - 1, Default: 1]
+	--- 	- @*param* **r** number ― Red [Range: 0, 1]
+	--- 	- @*param* **g** number ― Green [Range: 0, 1]
+	--- 	- @*param* **b** number ― Blue [Range: 0, 1]
+	--- 	- @*param* **a**? number *optional* ― Opacity [Range: 0, 1; Default: 1]
 	--- - **onCancel** function — The function to be called when the color change is cancelled
-	--- 	- @*param* **r** number ― Red [Range: 0 - 1]
-	--- 	- @*param* **g** number ― Green [Range: 0 - 1]
-	--- 	- @*param* **b** number ― Blue [Range: 0 - 1]
-	--- 	- @*param* **a**? number *optional* ― Opacity [Range: 0 - 1, Default: 1]
+	--- 	- @*param* **r** number ― Red [Range: 0, 1]
+	--- 	- @*param* **g** number ― Green [Range: 0, 1]
+	--- 	- @*param* **b** number ― Blue [Range: 0, 1]
+	--- 	- @*param* **a**? number *optional* ― Opacity [Range: 0, 1; Default: 1]
 	--- - **disabled**? boolean *optional* — Set the state of this widget to be disabled on load [Default: false]
 	--- - **dependencies**? table [indexed, 0-based] *optional* — Automatically disable or enable this widget based on the rules described in subtables
 	--- 	- **frame** Frame — Tie the state of this widget to the evaluation of this frame's value
@@ -2768,17 +2714,17 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 	- **storageTable** table ― Reference to the table containing the value modified by the options widget
 	--- 	- **key** string ― Key of the variable inside the storage table
 	--- 	- **convertSave**? function *optional* — Function to convert or modify the data while it is being saved from the widget to the storage table
-	--- 		- @*param* **r** number ― Red [Range: 0 - 1]
-	--- 		- @*param* **g** number ― Green [Range: 0 - 1]
-	--- 		- @*param* **b** number ― Blue [Range: 0 - 1]
-	--- 		- @*param* **a**? number ― Opacity [Range: 0 - 1]
+	--- 		- @*param* **r** number ― Red [Range: 0, 1]
+	--- 		- @*param* **g** number ― Green [Range: 0, 1]
+	--- 		- @*param* **b** number ― Blue [Range: 0, 1]
+	--- 		- @*param* **a**? number ― Opacity [Range: 0, 1]
 	--- 		- @*return* any ― The converted data to be saved to the storage table
 	--- 	- **convertLoad**? function *optional* — Function to convert or modify the data while it is being loaded from the storage table to the widget as its value
 	--- 		- @*param* any *(any number of arguments)* ― The data in the storage table to be converted
-	--- 		- @*return* **r** number ― Red [Range: 0 - 1]
-	--- 		- @*return* **g** number ― Green [Range: 0 - 1]
-	--- 		- @*return* **b** number ― Blue [Range: 0 - 1]
-	--- 		- @*return* **a**? number ― Opacity [Range: 0 - 1]
+	--- 		- @*return* **r** number ― Red [Range: 0, 1]
+	--- 		- @*return* **g** number ― Green [Range: 0, 1]
+	--- 		- @*return* **b** number ― Blue [Range: 0, 1]
+	--- 		- @*return* **a**? number ― Opacity [Range: 0, 1]
 	--- - **onSave**? function *optional* — Function to be called when they okay button is pressed (after the data has been saved from the options widget to the storage table)
 	--- 	- @*param* **self** Frame ― Reference to the widget
 	--- - **onLoad**? function *optional* — Function to be called when an options category is refreshed (after the data has been restored from the storage table to the widget)
@@ -2791,15 +2737,15 @@ if not WidgetToolbox[ns.WidgetToolsVersion] then
 	--- 	- @*param* **type** string
 	--- 	- @*return* boolean
 	--- - **getColor** function ― Returns the currently set color values
-	--- 	- @*return* **r** number ― Red [Range: 0 - 1]
-	--- 	- @*return* **g** number ― Green [Range: 0 - 1]
-	--- 	- @*return* **b** number ― Blue [Range: 0 - 1]
-	--- 	- @*return* **a**? number ― Opacity [Range: 0 - 1]
+	--- 	- @*return* **r** number ― Red [Range: 0, 1]
+	--- 	- @*return* **g** number ― Green [Range: 0, 1]
+	--- 	- @*return* **b** number ― Blue [Range: 0, 1]
+	--- 	- @*return* **a**? number ― Opacity [Range: 0, 1]
 	--- - **setColor** function ― Sets the color and text of each element
-	--- 	- @*param* **r** number ― Red [Range: 0 - 1]
-	--- 	- @*param* **g** number ― Green [Range: 0 - 1]
-	--- 	- @*param* **b** number ― Blue [Range: 0 - 1]
-	--- 	- @*param* **a**? number *optional* ― Opacity [Range: 0 - 1, Default: 1]
+	--- 	- @*param* **r** number ― Red [Range: 0, 1]
+	--- 	- @*param* **g** number ― Green [Range: 0, 1]
+	--- 	- @*param* **b** number ― Blue [Range: 0, 1]
+	--- 	- @*param* **a**? number *optional* ― Opacity [Range: 0, 1; Default: 1]
 	WidgetToolbox[ns.WidgetToolsVersion].CreateColorPicker = function(t)
 		local pickerFrame = CreateFrame("Frame", t.parent:GetName() .. (t.name or t.label:gsub("%s+", "")) .. "ColorPicker", t.parent)
 		--Position & dimensions

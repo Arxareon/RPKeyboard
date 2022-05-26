@@ -6,25 +6,6 @@ local _, addon = GetAddOnInfo(addonNameSpace)
 local wt = WidgetToolbox[ns.WidgetToolsVersion]
 
 
---[[ ALIASES ]]
-
----@alias ChatTypeId
----|'"SAY"'
----|'"EMOTE"'
----|'"YELL"'
----|'"PARTY"'
----|'"GUILD"'
----|'"OFFICER"'
----|'"RAID"'
----|'"RAID_WARNING"'
----|'"INSTANCE_CHAT"'
----|'"BATTLEGROUND"'
----|'"WHISPER"'
----|'"CHANNEL"'
----|'"AFK"'
----|'"DND"'
-
-
 --[[ ASSETS & RESOURCES ]]
 
 local root = "Interface/AddOns/" .. addonNameSpace .. "/"
@@ -103,13 +84,6 @@ local dbcDefault = {
 --[ Symbol Sets ]
 
 local symbols = {
-	sample = {
-		name = "Sample",
-		version = 1.0,
-		textures = {
-			[0] = ""
-		},
-	},
 }
 
 
@@ -283,45 +257,197 @@ end
 RPKBTools = {}
 
 ---Add or update a set of symbols to the RP Keyboard table
----@param name string Displayed name of the symbol set
----@param version string The current version number of this set
----@param symbolSet table Table containing file paths of the symbol textures [key, value pairs]
---- - **Key:** To be recognized, the specific singlar character represented by the specific symbol must be used as the key.
---- - **Value:** The value must be the path of the specific texture file of the symbol.
---- 	- ***File format:*** Texture files must be in JPEG (no transparency, not recommended), TGA or BLP format.
---- 	- ***Dimensions:*** Textures must have powers of 2 dimensions. RP Keyboard handles textures with 32 x 32 dimensions.
---- 	- ***Color***: Flat white color is preferred, so the symbols may be recolored to any color within the game.
---- 	- ***Path***: File paths are relative to the WoW directory. Use "/" as separator. Example: Interface/AddOns/RPKeyboard/Textures/Logo.tga
+---@param data table Table containing information about the symbol set
+--- - **name** string ― Displayed name of the symbol set
+--- - **description**? string *optional* ― Details about the symbol set
+--- - **version** string ― The current version number of this set
+--- - **date**? string *optional* ― The current version number of this set
+--- - **license**? string *optional* ― The current version number of this set [Default: "All Rights Reserved"]
+--- 	- ***Note:*** American spelling is used, be mindful of confusing it with "licence".
+--- - **authors** table [indexed, 0-based] ― List of the authors who created and released this symbol set
+--- 	- ***Value:*** string ― Name of the author
+--- - **links**? table [indexed, 0-based] *optional* ― Collection links related to the symbol set
+--- 	- ***Value:*** table ― Details of a given link
+--- 		- **title** string ― Displayed title of the specific link
+--- 		- **url** string ― The copiable URL of the specific link
+--- - **textures** table [key, value pairs] ― Table containing subtables of all details and data of each specific symbol in the set
+--- 	- ***Key:*** string ― To be recognized, the specific singlar character represented by the specific symbol must be used as the key.
+--- 	- ***Value:*** table
+--- 		- **path** string ― Path of the specific texture file of the symbolrelative to the root directory of the specific WoW client.
+--- 			- ***Note:*** Use "/" as separator in file paths. (Example: Interface/AddOns/RPKeyboard/Textures/Logo.tga)
+--- 			- ***Note - File format:*** Texture files must be in JPEG (no transparency, not recommended), TGA or BLP format.
+--- 			- ***Note - Color:*** Flat white colored textures are preferred, so the symbols may be recolored to any color within the game.
+--- 		- **size**? integer *optional* ― RP Keyboard handles square textures with powers of 2 dimensions. [Value: powers of 2, Default: 32]
+--- 		- **cut**? table *optional* ― Cut the edges of the texture image at the specified widths
+--- 			- **left**? integer ― The width of the strip to cut from the left edge rightwards [Range 0, **size**; Default: 0]
+--- 			- **right**? integer ― The width of the strip to cut from the right edge leftwards [Range 0, **size**; Default: 0]
+--- 			- **top**? integer ― The width of the strip to cut from the top edge downwards [Range 0, **size**; Default: 0]
+--- 			- **bottom**? integer ― The width of the strip to cut from the bottom edge upwards [Range 0, **size**; Default: 0]
 ---@param override? boolean Whether to override the symbol set if one already exist with the given key [Default: false]
----@return string? symbolSetKey The symbol set table will be listed under this key in the RP Keyboard table [Default: nil *(on error)*]
-RPKBTools.AddSet = function(name, version, symbolSet, override)
-	local symbolSetKey = name:gsub("%s+", ""):lower()
-	--Check for an existing set
-	if symbolSet[symbolSetKey] ~= nil and override ~= true then return nil end
-	--Validate the symbol set
+---@return string|integer symbolSetKey String key referring to the symbol set subtable added to the RP Keyboard table or a number on error
+--- - ***Error codes:*** The specific number is returned when one of these errors occurs:
+--- 	1. **name** has been left out or it is invalid.
+--- 	2. A symbol set with this **name** already exists (and **override** is false).
+--- 	3. **description** is set but it is invalid.
+--- 	5. **version** has been left out or it is invalid.
+--- 	5. **date** is set but it is invalid.
+--- 	6. **license** is set but it is invalid.
+--- 	7. **authors** has been left out, it is invalid or empty.
+--- 	8. A child item in **authors** is invalid.
+--- 	9. **links** is set but it is invalid or empty.
+--- 	10. **title** or **url** of a child item in **links** has been left out or it is invalid.
+--- 	11. **textures** has been left out, it is invalid or empty.
+--- 	12. The key of an item in **textures** is invalid (not a one character long string).
+--- 	13. A direct child value in **textures** is not a table or it is empty.
+--- 	14. **path** in a subtable of **textures** has been left out or it is invalid (check file format as well).
+--- 	15. **size** in a subtable of **textures** is set but it is invalid (not an integer with a power of 2 value).
+--- 	16. **cut** in a subtable of **textures** is set but it is invalid or empty.
+--- 	17. **left**, **right**, **top** or **bottom** in **cut** is set but it is invalid (nut an integer within the required range).
+RPKBTools.AddSet = function(data, override)
+
+	--[ Validate the symbol set]
+
 	local validatedSet = {}
-	for key, value in pairs(symbolSet) do
-		if #key ~= 1 or not value then return nil end
-		if type(value) ~= "string" then return nil end
-		if value:match("Interface/AddOns/[^%c.<>:\"\\|%?*][^%c.<>:\"\\|%?*]-/[^%c.<>:\"\\|%?*][^%c.<>:\"\\|%?*]-%.[bBtTjJ][lLgGpP][pPaAeEgG][gG]?") ~= value then return nil end
-		validatedSet[key] = value
+
+	--Check name
+	if type(data.name) ~= "string" or data.name == "" then return 1 end
+	local symbolSetKey = data.name:gsub("%s+", "")
+
+	--Check for an existing set
+	if symbols[symbolSetKey] ~= nil and override ~= true then return 2 end
+	validatedSet.name = data.name
+
+	--Check description
+	if data.description ~= nil then
+		if type(data.description) ~= "string" or data.description == "" then return 3 end
+		validatedSet.description = data.description
 	end
+
+	--Check version
+	if type(data.version) ~= "string" or data.version == "" then return 4 end
+	validatedSet.version = data.version
+
+	--Check date
+	if data.date ~= nil then
+		if type(data.date) ~= "string" or data.date == "" then return 5 end
+		validatedSet.date = data.date
+	end
+
+	--Check license
+	if data.license ~= nil then
+		if type(data.license) ~= "string" or data.license == "" then return 6 end
+		validatedSet.license = data.license
+	else validatedSet.license = "All Rights Reserved" end
+
+	--Check authors
+	if type(data.authors) ~= "table" then return 7 elseif next(data.authors) == nil then return 7 end
+	validatedSet.authors = {}
+	for i = 0, #data.authors do
+		if type(data.authors[i]) ~= "string" or data.authors[i] == "" then return 8 else
+			validatedSet.authors[i] = data.authors[i]
+		end
+	end
+
+	--Check links
+	if data.links ~= nil then
+		if type(data.links) ~= "table" then return 9 elseif next(data.authors) == nil then return 9 end
+		validatedSet.links = {}
+		for i = 0, #data.links do
+			if type(data.links[i].title) ~= "string" or data.links[i].title == "" or type(data.links[i].url) ~= "string" or data.links[i].url == "" then return 10 end
+			validatedSet.links[i] = {}
+			validatedSet.links[i].title = data.links[i].title
+			validatedSet.links[i].url = data.links[i].url
+		end
+	end
+
+	--Check textures
+	if type(data.textures) ~= "table" then return 11 elseif next(data.textures) == nil then return 11 end
+	validatedSet.textures = {}
+	for key, value in pairs(data.textures) do
+		if type(key) ~= "string" then return 12 elseif #key ~= 1 then return 12 end
+		if type(value) ~= "table" then return 13 elseif next(value) == nil then return 13 end
+		validatedSet.textures[key] = {}
+
+		--Check path
+		local path = value.path:match("Interface/AddOns/[^%c.<>:\"\\|%?*][^%c.<>:\"\\|%?*]-/[^%c.<>:\"\\|%?*][^%c.<>:\"\\|%?*]-%.")
+		if path == nil then return 14 end
+		local format = value.path:sub(#path + 1)
+		if format ~= "jpg" and format ~= "JPG" and format ~= "jpeg" and format ~= "JPEG" and format ~= "tga" and format ~= "TGA" and format ~= "blp" and format ~= "BLP" then
+			return 14
+		end
+		validatedSet.textures[key].path = value.path
+
+		--Check size
+		if value.size ~= nil then
+			if type(value.size) ~= "number" then return 15 elseif math.floor(value.size) ~= value.size or math.frexp(value.size) ~= 0.5 then return 15 end
+			validatedSet.textures[key].size = value.size
+		else validatedSet.textures[key].size = 32 end
+
+		--Check cut
+		if value.cut ~= nil then
+			if type(value.cut) ~= "table" then return 16 elseif next(value) == nil then return 16 end
+			validatedSet.textures[key].cut = {}
+
+			--Check left
+			if value.cut.left ~= nil then
+				if type(value.cut.left) ~= "number" then return 17 elseif math.floor(value.cut.left) ~= value.cut.left then return 17 end
+				if value.cut.left < 0 or value.cut.left > validatedSet.textures[key].size then return 17 end
+				validatedSet.textures[key].cut.left = value.cut.left
+			else validatedSet.textures[key].cut.left = 0 end
+
+			--Check right
+			if value.cut.right ~= nil then
+				if type(value.cut.right) ~= "number" then return 17 elseif math.floor(value.cut.right) ~= value.cut.right then return 17 end
+				if value.cut.right < 0 or value.cut.right > validatedSet.textures[key].size then return 17 end
+				validatedSet.textures[key].cut.right = value.cut.right
+			else validatedSet.textures[key].cut.left = 0 end
+
+			--Check top
+			if value.cut.top ~= nil then
+				if type(value.cut.top) ~= "number" then return 17 elseif math.floor(value.cut.top) ~= value.cut.top then return 17 end
+				if value.cut.top < 0 or value.cut.top > validatedSet.textures[key].size then return 17 end
+				validatedSet.textures[key].cut.top = value.cut.top
+			else validatedSet.textures[key].cut.top = 0 end
+
+			--Check bottom
+			if value.cut.bottom ~= nil then
+				if type(value.cut.bottom) ~= "number" then return 17 elseif math.floor(value.cut.bottom) ~= value.cut.bottom then return 17 end
+				if value.cut.bottom < 0 or value.cut.bottom > validatedSet.textures[key].size then return 17 end
+				validatedSet.textures[key].cut.bottom = value.cut.bottom
+			else validatedSet.textures[key].cut.bottom = 0 end
+		else validatedSet.textures[key].cut = { left = 0, right = 0, top = 0, bottom = 0 } end
+	end
+
+	--[ Commit ]
+
 	--Add the set
-	symbols[symbolSetKey] = {
-		name = name,
-		version = version,
-		textures = validatedSet,
-	}
+	symbols[symbolSetKey] = validatedSet
+
 	--Update the UI
 	UpdateSets()
+
 	return symbolSetKey
 end
 
 ---Return a copy of symbol set subtable from the RP Keyboard table if it exists
----@param symbolSetKey string The key referring to the symbol set subtable
----@return table? symbolSet A copy of the symbol set subtable [Default: nil]
+---@param symbolSetKey string The key referring to the symbol set subtable within the RP Keyboard table
+---@return table|nil symbolSet A copy of the symbol set subtable (or nil if it doesn't exist)
 RPKBTools.GetSet = function(symbolSetKey)
 	return wt.Clone(symbols[symbolSetKey])
+end
+
+---Assemble and return a texture escape sequence of the specific character from the specified symbol set
+---@param character string The specific character to search for in the symbol set
+---@param symbolSetKey string The key referring to the symbol set subtable within the RP Keyboard table
+---@param size? integer Font size to use use for the symbols [Default: 0 *(surrounding text height)*]
+---@param r? number Font color red component [Range: 0, 255; Default: 255]
+---@param g? number Font color green component [Range: 0, 255; Default: 255]
+---@param b? number Font color blue component [Range: 0, 255; Default: 255]
+---@return string texture Formatted symbol texture (**character** is returned when there is no symbol found representing it)
+RPKBTools.GetSymbolTexture = function(character, symbolSetKey, size, r, g, b)
+	if symbols[symbolSetKey] == nil then return character end
+	if symbols[symbolSetKey].textures[character] == nil then return character end
+	return "|T" .. symbols[symbolSetKey].textures[character].path .. ":" .. (size or 0) .. ":" .. (size or 0) .. ":" .. "0:0:" .. symbols[symbolSetKey].textures[character].size .. ":" .. symbols[symbolSetKey].textures[character].size .. ":" .. symbols[symbolSetKey].textures[character].cut.left .. ":" .. symbols[symbolSetKey].textures[character].size - symbols[symbolSetKey].textures[character].cut.right .. ":" .. symbols[symbolSetKey].textures[character].cut.top .. ":" .. symbols[symbolSetKey].textures[character].size - symbols[symbolSetKey].textures[character].cut.right .. ":" .. (r or 255) .. ":" .. (g or 255) .. ":" .. (b or 255) .. "|t"
 end
 
 ---Toggle the RP Keyboard chat window
@@ -347,22 +473,20 @@ end
 ---Format the text to appear with the specified symbol set
 --- - ***Note:*** All escape sequences included within **text** (like text color formatting) will be removed in the process.
 ---@param text string Change the recognized characters of this text to the corresponding symbols
----@param symbolSetKey string Key referring to the symbol set sebtable within the RP Keyboard table to sample
----@param size integer Font size to use use for the symbols [Default: 0 *(surrounding text height)*]
----@param rgb string Font color [Format: R:G:B, Range: 0 - 255, Default: *color of the current RP Keyboard chat channel*]
-RPKBTools.ApplyFont = function(text, symbolSetKey, size, rgb)
+---@param symbolSetKey string Key referring to the symbol set subtable within the RP Keyboard table to sample
+---@param size? integer Font size to use use for the symbols [Default: 0 *(surrounding text height)*]
+---@param r? number Font color red component [Range: 0, 255; Default: 255]
+---@param g? number Font color green component [Range: 0, 255; Default: 255]
+---@param b? number Font color blue component [Range: 0, 255; Default: 255]
+---@return string s
+RPKBTools.ApplyFont = function(text, symbolSetKey, size, r, g, b)
+	if symbols[symbolSetKey] == nil then return text end
 	text = wt.Clear(text)
 	local s = ""
 	for i = 1, #text do
 		local char = text:sub(i, i)
-		if symbols[symbolSetKey].textures[char] ~= nil then
-			--Replace with a texture
-			s = s .. "|T" .. symbols[symbolSetKey].textures[char] .. ":" .. (size or 0) .. ":" .. (size or 0) .. ":" .. "0:0:32:32:4:28:4:28:" .. (
-				rgb or (ChatTypeInfo[currentChatType].r * 255 .. ":" .. ChatTypeInfo[currentChatType].g * 255 .. ":" .. ChatTypeInfo[currentChatType].b * 255)
-			) .. "|t"
-		else
-			s = s .. char
-		end
+		--Replace with a texture (if there is one)
+		s = s .. RPKBTools.GetSymbolTexture(char, symbolSetKey, size, r, g, b)
 	end
 	return s
 end
@@ -372,7 +496,7 @@ end
 --- - ***Note:*** When **chatType** is set to "EMOTE", **text** will be used as the custom emote text.
 ---@param chatType ChatTypeId Format the message so it appears as if sent as a message of this type
 ---@return string? message [Default: nil (*on error*)]
- RPKBTools.FormatMessage = function(text, chatType)
+RPKBTools.FormatMessage = function(text, chatType)
 	if text == "" then return nil end
 	local player = UnitName("player")
 	return wt.Color(
@@ -392,7 +516,7 @@ RPKBTools.SendMessage = function (text, chatType, symbolSetKey, translator)
 	if wt.Clear(text):trim() == "" then return end
 	local message = text
 	if symbolSetKey ~= nil then
-		message = RPKBTools.ApplyFont(text, symbolSetKey, 14)
+		message = RPKBTools.ApplyFont(text, symbolSetKey, 14, ChatTypeInfo[chatType].r * 255, ChatTypeInfo[chatType].g * 255, ChatTypeInfo[chatType].b * 255)
 		if translator ~= false then message = message .. " " .. wt.Hyperlink("item", addonNameSpace .. ":translate:" .. text, "|T" .. textures.logo .. ":0|t") end
 	end
 	message = RPKBTools.FormatMessage(message, chatType)
@@ -629,6 +753,90 @@ local function CreateMainCategoryPanels(parentFrame) --Add the main page widgets
 		description = strings.options.main.support.description:gsub("#ADDON", addon),
 	})
 	CreateSupportInfo(supportPanel)
+end
+
+--Symbols page
+local function CreateSymbolAboutInfo(parentFrame)
+	--Text: Version
+	local version = wt.CreateText({
+		frame = parentFrame,
+		name = "Version",
+		position = {
+			anchor = "TOPLEFT",
+			offset = { x = 16, y = -33 }
+		},
+		width = 84,
+		justify = "LEFT",
+		template = "GameFontNormalSmall",
+		text = strings.options.main.about.version:gsub("#VERSION", WrapTextInColorCode(GetAddOnMetadata(addonNameSpace, "Version"), "FFFFFFFF")),
+	})
+	--Text: Date
+	local date = wt.CreateText({
+		frame = parentFrame,
+		name = "Date",
+		position = {
+			anchor = "TOPLEFT",
+			relativeTo = version,
+			relativePoint = "TOPRIGHT",
+			offset = { x = 10, y = 0 }
+		},
+		width = 102,
+		justify = "LEFT",
+		template = "GameFontNormalSmall",
+		text = strings.options.main.about.date:gsub(
+			"#DATE", WrapTextInColorCode(strings.misc.date:gsub(
+				"#DAY", GetAddOnMetadata(addonNameSpace, "X-Day")
+			):gsub(
+				"#MONTH", GetAddOnMetadata(addonNameSpace, "X-Month")
+			):gsub(
+				"#YEAR", GetAddOnMetadata(addonNameSpace, "X-Year")
+			), "FFFFFFFF")
+		),
+	})
+	--Text: Author
+	local author = wt.CreateText({
+		frame = parentFrame,
+		name = "Author",
+		position = {
+			anchor = "TOPLEFT",
+			relativeTo = date,
+			relativePoint = "TOPRIGHT",
+			offset = { x = 10, y = 0 }
+		},
+		width = 186,
+		justify = "LEFT",
+		template = "GameFontNormalSmall",
+		text = strings.options.main.about.author:gsub("#AUTHOR", WrapTextInColorCode(GetAddOnMetadata(addonNameSpace, "Author"), "FFFFFFFF")),
+	})
+	--Text: License
+	wt.CreateText({
+		frame = parentFrame,
+		name = "License",
+		position = {
+			anchor = "TOPLEFT",
+			relativeTo = author,
+			relativePoint = "TOPRIGHT",
+			offset = { x = 10, y = 0 }
+		},
+		width = 156,
+		justify = "LEFT",
+		template = "GameFontNormalSmall",
+		text = strings.options.main.about.license:gsub("#LICENSE", WrapTextInColorCode(GetAddOnMetadata(addonNameSpace, "X-License"), "FFFFFFFF")),
+	})
+end
+local function CreateSymbolsCategoryPanels(parentFrame) --Add the main page widgets to the category panel frame
+	--Shortcuts
+	local shortcutsPanel = wt.CreatePanel({
+		parent = parentFrame,
+		position = {
+			anchor = "TOPLEFT",
+			offset = { x = 16, y = -82 }
+		},
+		size = { height = 64 },
+		title = strings.options.main.shortcuts.title,
+		description = strings.options.main.shortcuts.description:gsub("#ADDON", addon),
+	})
+	CreateOptionsShortcuts(shortcutsPanel)
 end
 
 --Advanced page
@@ -910,7 +1118,7 @@ local function SetUpChatFrame()
 	frames.rpkb:SetSize(ChatFrame1EditBox:GetWidth(), 32)
 
 	--Visibility
-	frames.rpkb:SetFrameStrata("HIGH")
+	frames.rpkb:SetFrameStrata("LOW")
 	wt.SetVisibility(frames.rpkb, csc.visible)
 
 	--Behavior
@@ -1066,6 +1274,8 @@ local function SetUpChatFrame()
 	frames.rpkb.editBox:SetAutoFocus(false)
 	frames.rpkb:SetScript("OnMouseDown", function() frames.rpkb.editBox:SetFocus() end)
 	frames.rpkb.editBox:SetScript("OnEditFocusGained", function(self)
+		--Visibility
+		frames.rpkb:SetFrameStrata("HIGH")
 		--Art
 		artCenter:SetAlpha(1)
 		artLeft:SetAlpha(1)
@@ -1077,6 +1287,8 @@ local function SetUpChatFrame()
 	end)
 	frames.rpkb.editBox:SetScript("OnEditFocusLost", function(self)
 		if self:GetText() ~= "" then return end
+		--Visibility
+		frames.rpkb:SetFrameStrata("LOW")
 		--Art
 		artCenter:SetAlpha(0.3)
 		artLeft:SetAlpha(0.3)
@@ -1090,12 +1302,14 @@ local function SetUpChatFrame()
 	frames.rpkb.editBox:SetScript("OnTextChanged", function(self, user)
 		if not user then return end
 		--Update preview
-		previewText:SetText(RPKBTools.ApplyFont(self:GetText(), "test", 14))
+		previewText:SetText(
+			RPKBTools.ApplyFont(self:GetText(), "Sample", 14, ChatTypeInfo[currentChatType].r * 255, ChatTypeInfo[currentChatType].g * 255, ChatTypeInfo[currentChatType].b * 255)
+		)
 	end)
 	frames.rpkb.editBox:SetScript("OnEnterPressed", function(self)
 		if IsModifierKeyDown() then return end
 		--Trasmit the message
-		RPKBTools.SendMessage(self:GetText(), currentChatType, "test")
+		RPKBTools.SendMessage(self:GetText(), currentChatType, "Sample")
 		--Clear the input
 		self:SetText("")
 		self:ClearFocus()
@@ -1199,19 +1413,71 @@ function frames.rpkb:ADDON_LOADED(name)
 	SetUpChatFrame()
 	SetUpTranslateFrame()
 	--TDODO: Remove TEMP:
-	RPKBTools.AddSet("Test", "1", {
-		["!"] = root .. "Textures/0_Exclamation.tga",
-		["\""] = root .. "Textures/1_Quotation.tga",
-		["'"] = root .. "Textures/2_Apostrophe.tga",
-		[","] = root .. "Textures/3_Comma.tga",
-		["."] = root .. "Textures/4_Period.tga",
-		[":"] = root .. "Textures/5_Colon.tga",
-		[";"] = root .. "Textures/6_Semicolon.tga",
-		["?"] = root .. "Textures/7_Question.tga",
-		["a"] = root .. "Textures/8_A.tga",
-		["b"] = root .. "Textures/9_B.tga",
-		["c"] = root .. "Textures/10_C.tga",
-		["d"] = root .. "Textures/11_D.tga",
+	RPKBTools.AddSet({
+		name = "Sample",
+		description = "This is a sample set.",
+		version = "1.0",
+		date = "MM/DD/YYYY",
+		license = "License",
+		authors = {
+			[0] = "Author",
+		},
+		links = {
+			[0] = {
+				title = "Link",
+				url = "URL"
+			},
+		},
+		textures = {
+			["!"] = {
+				path = root .. "Textures/0_Exclamation.tga",
+				cut = { left = 4, right = 4, top = 4, bottom = 4 },
+			},
+			["\""] = {
+				path = root .. "Textures/1_Quotation.tga",
+				cut = { left = 4, right = 4, top = 4, bottom = 4 },
+			},
+			["'"] = {
+				path = root .. "Textures/2_Apostrophe.tga",
+				cut = { left = 4, right = 4, top = 4, bottom = 4 },
+			},
+			[","] = {
+				path = root .. "Textures/3_Comma.tga",
+				cut = { left = 4, right = 4, top = 4, bottom = 4 },
+			},
+			["."] = {
+				path = root .. "Textures/4_Period.tga",
+				cut = { left = 4, right = 4, top = 4, bottom = 4 },
+			},
+			[":"] = {
+				path = root .. "Textures/5_Colon.tga",
+				cut = { left = 4, right = 4, top = 4, bottom = 4 },
+			},
+			[";"] = {
+				path = root .. "Textures/6_Semicolon.tga",
+				cut = { left = 4, right = 4, top = 4, bottom = 4 },
+			},
+			["?"] = {
+				path = root .. "Textures/7_Question.tga",
+				cut = { left = 4, right = 4, top = 4, bottom = 4 },
+			},
+			["a"] = {
+				path = root .. "Textures/8_A.tga",
+				cut = { left = 4, right = 4, top = 4, bottom = 4 },
+			},
+			["b"] = {
+				path = root .. "Textures/9_B.tga",
+				cut = { left = 4, right = 4, top = 4, bottom = 4 },
+			},
+			["c"] = {
+				path = root .. "Textures/10_C.tga",
+				cut = { left = 4, right = 4, top = 4, bottom = 4 },
+			},
+			["d"] = {
+				path = root .. "Textures/11_D.tga",
+				cut = { left = 4, right = 4, top = 4, bottom = 4 },
+			},
+		},
 	})
 end
 function frames.rpkb:PLAYER_ENTERING_WORLD()
