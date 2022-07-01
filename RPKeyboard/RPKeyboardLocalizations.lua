@@ -6,7 +6,7 @@ local _, ns = ...
 
 local changelogDB = {
 	[0] = {
-		[0] = "#V_Version 1.0_# #H_(3/18/2022)_#",
+		[0] = "#V_Version 1.0_# #H_(8/20/2022)_#",
 		[1] = "#H_It's alive!_#",
 	},
 }
@@ -47,9 +47,8 @@ end
 local english = {
 	options = {
 		name = "#ADDON options",
-		defaults = "The default options and the Custom preset have been reset.",
+		defaults = "The default options and the chat window position have been reset.",
 		main = {
-			name = "Main page",
 			description = "Customize #ADDON to fit your needs. Type #KEYWORD for chat commands.", --# flags will be replaced with code
 			shortcuts = {
 				title = "Shortcuts",
@@ -63,7 +62,7 @@ local english = {
 				author = "Author: #AUTHOR", --# flags will be replaced with code
 				license = "License: #LICENSE", --# flags will be replaced with code
 				changelog = {
-					label = "Changelog",
+					title = "Changelog",
 					tooltip = "Notes of all the changes included in the addon updates for all versions.\n\nThe changelog is only available in English for now.", --\n represents the newline character
 				},
 			},
@@ -80,6 +79,46 @@ local english = {
 				description = "Visit #ADDON online if you have something to report.", --# flags will be replaced with code
 			},
 		},
+		symbolSets = {
+			title = "Symbol Sets",
+			description = "The list and details of each symbol set pack currently installed and enabled for #ADDON.", --# flags will be replaced with code
+			symbols = {
+				title = "Symbols",
+				tooltip = "List of symbols and their corresponding characters to type included in this set."
+			},
+		},
+		chatWindow = {
+			title = "Chat Window",
+			description = "Customize the #ADDON chat input window.", --# flags will be replaced with code
+			position = {
+				title = "Position",
+				description = "Drag & drop the chat window by clicking on the toggle button while holding #SHIFT to reposition it, fine-tune it here.", --# flags will be replaced with code
+				snap = {
+					title = "Snap to Chat",
+					tooltip = {
+						[0] = "Snap the #ADDON chat window below the default chat window so it moves and resizes with it.", --# flags will be replaced with code
+						[1] = "Note: Other addons might interfere with the automatic resizing. If you encounter issues, please consider making a report following the support link under #ISSUES on the main options page with a list of addons you are using included!\nDisconnecting after or during resizing might also cause issues. Resize the chat again to refresh the size of the #ADDON chat window elements.", --# flags will be replaced with code, \n represents the newline character
+						[2] = "If the default chat has been hidden, replaced or removed, the snap functionality will be unavailable.",
+					},
+				},
+				anchor = {
+					title = "Screen Anchor Point",
+					tooltip = "Select which point of the screen should the chat window be anchored to.",
+				},
+				xOffset = {
+					title = "Horizontal Offset",
+					tooltip = "Set the amount of horizontal offset (X axis) of the chat window from the selected anchor point.",
+				},
+				yOffset = {
+					title = "Vertical Offset",
+					tooltip = "Set the amount of vertical offset (Y axis) of the chat window from the selected anchor point.",
+				},
+			},
+		},
+		chatLogs = {
+			title = "Chat Logs",
+			description = "The log of messages sent and received through #ADDON.", --# flags will be replaced with code
+		},
 		advanced = {
 			title = "Advanced",
 			description = "Configure #ADDON settings further, change options manually or backup your data by importing, exporting settings.", --# flags will be replaced with code
@@ -91,7 +130,7 @@ local english = {
 				title = "Backup",
 				description = "Import or export #ADDON options to save, share or apply them between your accounts.", --# flags will be replaced with code
 				backupBox = {
-					label = "Import & Export",
+					title = "Import & Export",
 					tooltip = {
 						[0] = "The backup string in this box contains the currently saved addon data and frame positions.",
 						[1] = "Copy it to save, share or use it for another account.",
@@ -101,15 +140,15 @@ local english = {
 					},
 				},
 				compact = {
-					label = "Compact",
+					title = "Compact",
 					tooltip = "Toggle between a compact and a readable view.",
 				},
 				load = {
-					label = "Load",
+					title = "Load",
 					tooltip = "Check the current string, and attempt to load all data from it.",
 				},
 				reset = {
-					label = "Reset",
+					title = "Reset",
 					tooltip = "Reset the string to reflect the currently stored values.",
 				},
 				import = "Load the string",
@@ -142,10 +181,43 @@ local english = {
 			enabled = "#ADDON has been enabled for this character.", --# flags will be replaced with code
 			disabled = "#ADDON has been disabled for this character.", --# flags will be replaced with code
 		},
+		snap = {
+			command = "snap",
+			description = "snap the #ADDON chat window below the default chat.",
+			enabled = "chat window snapped below the default chat window.",
+			disable = "chat window is no longer snapped below the default chat window.",
+			error = "chat window can't be snapped below the default chat window.",
+		},
+		noFont = "Couldn't display the message as the sender intended.\n\"#FONT\" font pack is not installed.", --# flags will be replaced with code, \n represents the newline character
 	},
 	translate = {
-		title = "Translation:",
+		title = "Written in #LANGUAGE:", --# flags will be replaced with code
 		close = "Click to close."
+	},
+	chatWindow = {
+		languageSelect = {
+			title = "Language Font",
+			tooltip = {
+				[0] = "Select the font to apply to the typed characters to make them appear to be written with the symbols of the specific language.",
+				[1] = "Note: If the recipients of the message do not have the selected font pack installed, their message will appear with regular font. They will see a note mentioning which symbol set are they missing."
+			}
+		},
+		channelSelect = {
+			title = "Chat Channel",
+			tooltip = {
+				[0] = "Select which channel to send to message through and how it should appear.",
+				[1] = "Note: These messages will only be seen by other #ADDON users!", --# flags will be replaced with code
+				[2] = "Addons can only transmit messages to party, raid, guild or other group members. This unfortunately means that not everyone around will be able to see the message even if they have #ADDON installed.", --# flags will be replaced with code
+			},
+		},
+		whisperTarget = {
+			title = "Whisper Target",
+			tooltip = "When the channel to send the message through is set to #WHISPER, it will be sent to the player who's name is entered here.", --# flags will be replaced with code
+		},
+		send = {
+			title = "Send",
+			tooltip = "Send the message currently typed into the #ADDON input box to the selected channel & target which will appear with the specified font (if recipients also have that font pack installed).\n\nAlternatively, you can hit #ENTER to send the message.", --# flags will be replaced with code, \n represents the newline character
+		},
 	},
 	keys = {
 		ctrl = "CTRL",
@@ -173,6 +245,7 @@ local english = {
 	},
 	misc = {
 		date = "#MONTH/#DAY/#YEAR", --# flags will be replaced with code
+		dateTimeFormat = "%m/%d/%y %H:%M:%S",
 		default = "Default",
 		custom = "Custom",
 		override = "Override",

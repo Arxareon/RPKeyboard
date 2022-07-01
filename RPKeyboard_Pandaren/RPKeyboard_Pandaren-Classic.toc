@@ -1,0 +1,14 @@
+## Interface: 11403
+## Title: RP Keyboard: Pandaren
+## Version: 1.0
+## X-Day: ?
+## X-Month: 7
+## X-Year: 2022
+## Author: Feyawen, Barnabas Nagy (Arxareon)
+## X-Credits: Art|Feyawen, Development|Barnabas Nagy (Arxareon)
+## X-License: All Rights Reserved
+## Notes: Pandaren symbol set for RPKeyboard.
+## X-Links: Feyawen|twitter.com/Grawrlz, CurseForge|curseforge.com/wow/addons/rp-keyboard, Wago|addons.wago.io/addons/rp-keyboard
+## Dependencies: RPKeyboard
+
+RPKeyboard_Pandaren.lua
